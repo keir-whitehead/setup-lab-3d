@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
-import { Canvas, ThreeEvent, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, useGLTF, Environment, ContactShadows, Html, Sparkles } from '@react-three/drei';
+import { Canvas, ThreeEvent, useThree } from '@react-three/fiber';
+import { OrbitControls, useGLTF, Environment, ContactShadows, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import type { Machine, Monitor } from '../types';
 
@@ -12,7 +12,7 @@ interface DeskModelProps {
   selectedId: string | null;
 }
 
-interface RingData {
+interface GlowData {
   position: [number, number, number];
   radius: number;
   color: string;
@@ -26,31 +26,29 @@ interface LabelData {
   position: [number, number, number];
 }
 
-function PulsingSelectionRing({ data }: { data: RingData }) {
-  const materialRef = useRef<THREE.MeshBasicMaterial>(null);
-
-  useFrame((state) => {
-    if (!materialRef.current) return;
-    const pulse = 0.45 + Math.sin(state.clock.elapsedTime * 3.2) * 0.25;
-    materialRef.current.opacity = Math.max(0.15, pulse);
-  });
-
+function SelectionGlow({ data }: { data: GlowData }) {
   return (
-    <mesh position={data.position} rotation={[-Math.PI / 2, 0, 0]}>
-      <ringGeometry args={[data.radius, data.radius + 0.03, 64]} />
-      <meshBasicMaterial ref={materialRef} color={data.color} transparent opacity={0.45} />
-    </mesh>
+    <group position={data.position} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh>
+        <circleGeometry args={[data.radius * 1.3, 64]} />
+        <meshBasicMaterial color={data.color} transparent opacity={0.08} depthWrite={false} />
+      </mesh>
+      <mesh position={[0, 0.001, 0]}>
+        <circleGeometry args={[data.radius, 64]} />
+        <meshBasicMaterial color={data.color} transparent opacity={0.16} depthWrite={false} />
+      </mesh>
+    </group>
   );
 }
 
 function DeskModel({ machines, monitors, onSelectMachine, onSelectMonitor, selectedId }: DeskModelProps) {
   const { scene } = useGLTF('/models/setup_lab.glb');
   const modelRef = useRef<THREE.Group>(null);
-  const [hovered, setHovered] = useState<string | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const { gl } = useThree();
 
-  const machineEntries = machines.map((m) => [m.meshName.toLowerCase(), m] as const);
-  const monitorEntries = monitors.map((m) => [m.meshName.toLowerCase(), m] as const);
+  const machineEntries = machines.map((machine) => [machine.meshName.toLowerCase(), machine] as const);
+  const monitorEntries = monitors.map((monitor) => [monitor.meshName.toLowerCase(), monitor] as const);
 
   useEffect(() => {
     if (!modelRef.current) return;
@@ -65,48 +63,55 @@ function DeskModel({ machines, monitors, onSelectMachine, onSelectMonitor, selec
   }, [machineEntries]);
 
   useEffect(() => {
-    gl.domElement.style.cursor = hovered ? 'pointer' : 'auto';
-  }, [hovered, gl]);
+    gl.domElement.style.cursor = hoveredId ? 'pointer' : 'auto';
+  }, [hoveredId, gl]);
 
-  const handleClick = (e: ThreeEvent<MouseEvent>) => {
-    e.stopPropagation();
-    const name = e.object.name.toLowerCase();
-
+  const getInteractiveTarget = (objectName: string) => {
     for (const [key, machine] of machineEntries) {
-      if (name.includes(key) && machine.active) {
-        onSelectMachine(machine.id);
-        return;
+      if (objectName.includes(key) && machine.active) {
+        return { type: 'machine' as const, id: machine.id };
       }
     }
 
     for (const [key, monitor] of monitorEntries) {
-      if (name.includes(key)) {
-        onSelectMonitor(monitor.id);
-        return;
+      if (objectName.includes(key)) {
+        return { type: 'monitor' as const, id: monitor.id };
       }
     }
+
+    return null;
   };
 
-  const handlePointerOver = (e: ThreeEvent<PointerEvent>) => {
-    e.stopPropagation();
-    const name = e.object.name.toLowerCase();
-    const isInteractive = [...machineEntries.map(([key]) => key), ...monitorEntries.map(([key]) => key)].some(
-      (key) => name.includes(key)
-    );
-    if (isInteractive) {
-      setHovered(name);
+  const handleClick = (event: ThreeEvent<MouseEvent>) => {
+    event.stopPropagation();
+    const target = getInteractiveTarget(event.object.name.toLowerCase());
+    if (!target) return;
+
+    if (target.type === 'machine') {
+      onSelectMachine(target.id);
+      return;
+    }
+
+    onSelectMonitor(target.id);
+  };
+
+  const handlePointerOver = (event: ThreeEvent<PointerEvent>) => {
+    event.stopPropagation();
+    const target = getInteractiveTarget(event.object.name.toLowerCase());
+    if (target) {
+      setHoveredId(target.id);
     }
   };
 
   const handlePointerOut = () => {
-    setHovered(null);
+    setHoveredId(null);
   };
 
-  const getRingData = (): RingData | null => {
+  const getGlowData = (): GlowData | null => {
     if (!selectedId || !modelRef.current) return null;
 
-    const selectedMachine = machines.find((m) => m.id === selectedId);
-    const selectedMonitor = monitors.find((m) => m.id === selectedId);
+    const selectedMachine = machines.find((machine) => machine.id === selectedId);
+    const selectedMonitor = monitors.find((monitor) => monitor.id === selectedId);
     const selected = selectedMachine ?? selectedMonitor;
     if (!selected) return null;
 
@@ -127,8 +132,8 @@ function DeskModel({ machines, monitors, onSelectMachine, onSelectMonitor, selec
     const size = box.getSize(new THREE.Vector3());
 
     return {
-      position: [center.x, box.min.y + 0.01, center.z],
-      radius: Math.max(size.x, size.z) * 0.72,
+      position: [center.x, box.min.y + 0.012, center.z],
+      radius: Math.max(size.x, size.z) * 0.75,
       color: selectedMachine?.color ?? '#818cf8',
     };
   };
@@ -164,14 +169,14 @@ function DeskModel({ machines, monitors, onSelectMachine, onSelectMonitor, selec
         name: machine.name,
         ram: machine.ram,
         color: machine.color,
-        position: [center.x, box.max.y + 0.12, center.z],
+        position: [center.x, box.max.y + 0.08, center.z],
       });
     }
 
     return labels;
   };
 
-  const ringData = getRingData();
+  const glowData = getGlowData();
   const labels = getLabels();
 
   return (
@@ -184,27 +189,34 @@ function DeskModel({ machines, monitors, onSelectMachine, onSelectMonitor, selec
         onPointerOut={handlePointerOut}
       />
 
-      {ringData && <PulsingSelectionRing data={ringData} />}
+      {glowData && <SelectionGlow data={glowData} />}
 
-      {labels.map((label) => (
-        <Html key={label.id} position={label.position} center distanceFactor={8}>
-          <div
-            style={{
-              background: 'rgba(10,10,26,0.88)',
-              border: `1px solid ${label.color}66`,
-              borderRadius: 7,
-              padding: '4px 7px',
-              color: '#f1f5f9',
-              fontSize: 10,
-              fontWeight: 700,
-              whiteSpace: 'nowrap',
-              boxShadow: `0 0 14px ${label.color}22`,
-            }}
-          >
-            {label.name} · {label.ram}
-          </div>
-        </Html>
-      ))}
+      {labels.map((label) => {
+        const show = hoveredId === label.id || selectedId === label.id;
+        if (!show) return null;
+
+        return (
+          <Html key={label.id} position={label.position} center distanceFactor={9}>
+            <div
+              style={{
+                background: 'rgba(10, 10, 26, 0.74)',
+                border: `1px solid ${label.color}40`,
+                borderRadius: 999,
+                padding: '3px 8px',
+                color: '#f1f5f9',
+                fontSize: 9,
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+                opacity: 0.7,
+                boxShadow: `0 0 10px ${label.color}22`,
+                pointerEvents: 'none',
+              }}
+            >
+              {label.name} {label.ram}
+            </div>
+          </Html>
+        );
+      })}
     </group>
   );
 }
@@ -220,16 +232,17 @@ interface SceneProps {
 export default function Scene({ machines, monitors, onSelectMachine, onSelectMonitor, selectedId }: SceneProps) {
   return (
     <Canvas
-      camera={{ position: [3, 3, 3], fov: 45 }}
-      style={{ background: 'linear-gradient(180deg, #0f0f23 0%, #1a0a2e 100%)' }}
+      camera={{ position: [2.5, 2, 2.5], fov: 40 }}
+      style={{ background: 'radial-gradient(circle at 20% 0%, #151537 0%, #0a0a1a 60%, #080812 100%)' }}
       shadows
     >
-      <ambientLight intensity={0.32} />
-      <pointLight position={[2.8, 2.6, 1.8]} intensity={0.75} color="#ffd8a8" castShadow />
-      <pointLight position={[-2.5, 2.2, -1.8]} intensity={0.45} color="#9ad5ff" />
-      <directionalLight position={[4.5, 6.2, 3.6]} intensity={0.4} color="#fff2dd" />
+      <fog attach="fog" args={['#0a0a1a', 5, 20]} />
 
-      <Sparkles count={85} scale={[8, 3, 8]} size={2.1} speed={0.25} color="#a5b4fc" />
+      <ambientLight intensity={0.15} />
+      <directionalLight position={[5, 8, 3]} intensity={0.6} color="#fff5e8" castShadow />
+      <pointLight position={[-4, 3, -2]} intensity={0.2} color="#b0c4ff" />
+      <pointLight position={[0, 4, -5]} intensity={0.3} color="#dbeafe" />
+      <pointLight position={[0, 0.1, 0]} intensity={0.1} color="#818cf8" />
 
       <DeskModel
         machines={machines}
@@ -239,26 +252,19 @@ export default function Scene({ machines, monitors, onSelectMachine, onSelectMon
         selectedId={selectedId}
       />
 
-      <ContactShadows
-        position={[0, -0.01, 0]}
-        opacity={0.42}
-        scale={10}
-        blur={2}
-        far={4}
-      />
+      <ContactShadows position={[0, -0.01, 0]} opacity={0.5} scale={10} blur={3} far={4} />
 
-      <Environment preset="city" />
+      <Environment preset="night" />
       <OrbitControls
         makeDefault
-        minDistance={1.5}
-        maxDistance={8}
-        minPolarAngle={0.2}
-        maxPolarAngle={Math.PI / 2.1}
+        target={[0, 0.5, 0]}
+        minDistance={1.4}
+        maxDistance={7.5}
+        minPolarAngle={0.25}
+        maxPolarAngle={Math.PI / 2.05}
         enableDamping
         dampingFactor={0.05}
       />
-
-      <gridHelper args={[10, 20, '#1a1a3e', '#1a1a3e']} position={[0, -0.02, 0]} />
     </Canvas>
   );
 }

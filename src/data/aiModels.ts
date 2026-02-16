@@ -1,4 +1,4 @@
-import type { AIModelDef, AIModelResult, CloudService } from '../types';
+import type { AIModelDef, AIModelResult, CloudService, Machine } from '../types';
 
 export const AI_MODEL_DEFS: AIModelDef[] = [
   {
@@ -215,110 +215,141 @@ export const CLOUD_SERVICES: CloudService[] = [
     name: 'Claude Opus 4.6',
     tier: 'Anthropic Pro / API',
     use: 'Frontier reasoning, complex analysis, long-form writing',
-    latency: '~1-3s TTFT',
     model: 'claude-opus-4-6-20260115',
     context: '200K tokens',
+    pricing: '$15/M input, $75/M output',
   },
   {
     name: 'OpenAI Codex (GPT-5.3)',
     tier: 'OpenAI Plus / API',
     use: 'Agentic coding, multi-file refactors, test generation',
-    latency: '~0.5-1.5s TTFT',
     model: 'codex-gpt-5.3-20260201',
     context: '200K tokens',
+    pricing: '$6/M input, $18/M output',
+  },
+  {
+    name: 'GPT-4o',
+    tier: 'OpenAI API',
+    use: 'General fast inference for chat, extraction, and assistant UX',
+    model: 'gpt-4o',
+    context: '128K tokens',
+    pricing: '$5/M input, $15/M output',
+  },
+  {
+    name: 'Gemini 2.5 Pro',
+    tier: 'Google AI Studio / Vertex AI',
+    use: 'Long-context analysis and multimodal reasoning workloads',
+    model: 'gemini-2.5-pro',
+    context: '1M tokens',
+    pricing: 'Varies by provider tier and token band',
+  },
+  {
+    name: 'Perplexity API',
+    tier: 'Perplexity API',
+    use: 'Search-augmented answers with fresh web context',
+    model: 'sonar-pro',
+    context: '128K tokens',
+    pricing: 'Per request + token pricing',
   },
 ];
 
-export function getAIModels(
-  totalRam: number,
-  maxSingleMachine: number,
-  machineCount: number,
-  _studioCount: number
-): AIModelResult[] {
-  return AI_MODEL_DEFS.map((m) => {
+const parseRam = (ram: string): number => {
+  const value = Number.parseInt(ram, 10);
+  return Number.isFinite(value) ? value : 0;
+};
+
+const parseSpeedMetric = (speed: string): number => {
+  const match = speed.match(/([\d.]+)/);
+  return match ? Number.parseFloat(match[1]) : 0;
+};
+
+const listMachines = (machines: Machine[]): string =>
+  machines.map((machine) => `${machine.name} (${machine.ram})`).join(', ');
+
+export function getAIModels(activeMachines: Machine[]): AIModelResult[] {
+  const totalRam = activeMachines.reduce((sum, machine) => sum + parseRam(machine.ram), 0);
+  const maxSingleMachine = Math.max(...activeMachines.map((machine) => parseRam(machine.ram)), 0);
+  const machineCount = activeMachines.length;
+
+  return AI_MODEL_DEFS.map((model) => {
     const safeMaxSingle = Math.max(maxSingleMachine, 1);
     const safeTotalRam = Math.max(totalRam, 1);
-    const fitsOnOne = m.vramGB <= safeMaxSingle * 0.85;
-    const fitsDistributed = m.vramGB <= safeTotalRam * 0.9;
-    const lotsOfRoom = m.vramGB <= safeMaxSingle * 0.5;
-    const headroomPct = Math.round((1 - m.vramGB / safeMaxSingle) * 100);
-    const combinedHeadroomPct = Math.round((1 - m.vramGB / safeTotalRam) * 100);
+    const fittingMachines = activeMachines.filter((machine) => model.vramGB <= parseRam(machine.ram) * 0.85);
+    const fitsOnOne = fittingMachines.length > 0;
+    const fitsDistributed = model.vramGB <= safeTotalRam * 0.9 && machineCount >= 2;
+    const lotsOfRoom = model.vramGB <= safeMaxSingle * 0.5;
+
     let status: AIModelResult['status'];
     let speed: string;
     let runMode: string;
     let note: string;
+    let runsOn: string;
 
-    if (m.type === 'audio') {
-      return {
-        name: m.name, params: m.params, quant: m.quant,
-        vram: `~${m.vramGB}GB`, speed: '~50x RT (MLX)',
-        status: 'fast' as const, notes: m.desc,
-        runMode: 'Any single machine', category: m.category, desc: m.desc,
-        costPerMTokenInput: m.costPerMTokenInput,
-        costPerMTokenOutput: m.costPerMTokenOutput,
-        localCostPerHour: m.localCostPerHour,
-      };
-    }
-    if (m.type === 'image') {
-      return {
-        name: m.name, params: m.params, quant: m.quant,
-        vram: `~${m.vramGB}GB`, speed: `~${m.imgSpeed}s/img`,
-        status: fitsOnOne ? 'fast' as const : 'no' as const,
-        notes: m.desc,
-        runMode: fitsOnOne ? 'Any single machine' : `Need ${m.vramGB}GB+`,
-        category: m.category, desc: m.desc,
-        localCostPerHour: m.localCostPerHour,
-      };
-    }
-
-    const fmtLLM = (mlx: number | null, ollama: number | null) => {
-      const mlxText = mlx !== null ? `~${mlx} t/s (MLX)` : '— (MLX)';
-      const ollamaText = ollama !== null ? `~${ollama} t/s (Ollama)` : '— (Ollama)';
-      return `${mlxText} / ${ollamaText}`;
-    };
-
-    if (lotsOfRoom) {
+    if (model.type === 'audio') {
+      status = fitsOnOne ? 'fast' : 'no';
+      speed = '~50x RT';
+      runMode = fitsOnOne ? 'Any single machine' : `Need ${model.vramGB}GB+`;
+      note = model.desc;
+      runsOn = fitsOnOne ? listMachines(fittingMachines) : `Need ${model.vramGB}GB+`;
+    } else if (model.type === 'image') {
+      status = fitsOnOne ? 'fast' : 'no';
+      speed = `~${model.imgSpeed ?? 0} s/img`;
+      runMode = fitsOnOne ? 'Any single machine' : `Need ${model.vramGB}GB+`;
+      note = model.desc;
+      runsOn = fitsOnOne ? listMachines(fittingMachines) : `Need ${model.vramGB}GB+`;
+    } else if (lotsOfRoom) {
       status = 'fast';
-      speed = fmtLLM(m.singleMLX, m.singleOllama);
-      runMode = 'Any single machine';
-      note = `${headroomPct}% RAM headroom. No need for distributed.`;
+      speed = `${model.singleMLX ?? model.singleOllama ?? 0} tok/s`;
+      runMode = 'Single machine';
+      note = 'Plenty of memory headroom for steady local throughput.';
+      runsOn = listMachines(fittingMachines);
     } else if (fitsOnOne) {
-      status = headroomPct > 20 ? 'fast' : 'runs';
-      speed = fmtLLM(m.singleMLX, m.singleOllama);
-      runMode = m.vramGB <= 64 * 0.85 ? 'Any single machine' : 'Studio (128GB)';
-      note = `${headroomPct}% headroom on largest machine.`;
+      status = 'runs';
+      speed = `${model.singleMLX ?? model.singleOllama ?? 0} tok/s`;
+      runMode = 'Single machine';
+      note = 'Runs locally with tighter memory overhead.';
+      runsOn = listMachines(fittingMachines);
     } else if (fitsDistributed) {
       status = 'distributed';
-      const baseExoSpeed = m.exoSpeed ?? 8;
-      const distributedOnly = m.exoNote.toLowerCase().includes('distributed only');
-      const scale = distributedOnly ? 1 : (1 + Math.max(machineCount - 2, 0) * 0.25);
-      const exoTps = Math.round(baseExoSpeed * scale);
-      speed = `~${exoTps} t/s (exo + RDMA)`;
-      runMode = `exo across ${machineCount} machines`;
-      note = `Requires distributed inference. ${combinedHeadroomPct}% headroom across ${totalRam}GB.`;
+      const baseExoSpeed = model.exoSpeed ?? 8;
+      const distributedOnly = model.exoNote.toLowerCase().includes('distributed only');
+      const scale = distributedOnly ? 1 : 1 + Math.max(machineCount - 2, 0) * 0.25;
+      speed = `${Math.round(baseExoSpeed * scale)} tok/s`;
+      runMode = `exo cluster across ${machineCount} machines`;
+      note = `Distributed memory split required across ${totalRam}GB unified RAM.`;
+      runsOn = 'exo cluster';
     } else {
       status = 'no';
-      speed = '—';
-      runMode = `Need ${m.vramGB}GB+`;
-      note = m.desc;
+      speed = '0 tok/s';
+      runMode = `Need ${model.vramGB}GB+`;
+      note = model.desc;
+      runsOn = `Need ${model.vramGB}GB+`;
     }
 
-    // Calculate monthly savings estimate
     let monthlySavings: number | undefined;
-    if (m.costPerMTokenInput !== undefined && m.costPerMTokenOutput !== undefined && status !== 'no') {
-      // Assume ~100M tokens/month usage
-      const cloudMonthlyCost = (m.costPerMTokenInput + m.costPerMTokenOutput) * 50;
-      const localMonthlyCost = (m.localCostPerHour ?? 0.015) * 720; // 24/7
+    if (model.costPerMTokenInput !== undefined && model.costPerMTokenOutput !== undefined && status !== 'no') {
+      const cloudMonthlyCost = (model.costPerMTokenInput + model.costPerMTokenOutput) * 50;
+      const localMonthlyCost = (model.localCostPerHour ?? 0.015) * 720;
       monthlySavings = cloudMonthlyCost - localMonthlyCost;
     }
 
+    const normalizedSpeed = `${Math.max(0, Math.round(parseSpeedMetric(speed)))} ${model.unit}`;
+
     return {
-      name: m.name, params: m.params, quant: m.quant,
-      vram: `~${m.vramGB}GB`, speed, status, notes: note, runMode,
-      category: m.category, desc: m.desc,
-      costPerMTokenInput: m.costPerMTokenInput,
-      costPerMTokenOutput: m.costPerMTokenOutput,
-      localCostPerHour: m.localCostPerHour,
+      name: model.name,
+      params: model.params,
+      quant: model.quant,
+      vram: `~${model.vramGB}GB`,
+      speed: normalizedSpeed,
+      status,
+      notes: note,
+      runMode,
+      runsOn,
+      category: model.category,
+      desc: model.desc,
+      costPerMTokenInput: model.costPerMTokenInput,
+      costPerMTokenOutput: model.costPerMTokenOutput,
+      localCostPerHour: model.localCostPerHour,
       monthlySavings,
     };
   });
