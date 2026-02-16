@@ -6,7 +6,7 @@ import { INITIAL_MONITORS } from './data/monitors';
 import { CLOUD_SERVICES, getAIModels } from './data/aiModels';
 import type { Machine } from './types';
 
-type MachineTemplateKey = 'MacBook Air' | 'MacBook Pro' | 'Mac Mini' | 'Mac Studio' | 'Mac Pro';
+type MachineTemplateKey = 'MacBook Air' | 'MacBook Pro' | 'Mac Mini' | 'Mac Studio';
 
 const MACHINE_TEMPLATES: Record<MachineTemplateKey, Omit<Machine, 'id'>> = {
   'MacBook Air': {
@@ -62,37 +62,20 @@ const MACHINE_TEMPLATES: Record<MachineTemplateKey, Omit<Machine, 'id'>> = {
   },
   'Mac Studio': {
     name: 'Mac Studio',
-    chip: 'M4 Ultra',
-    ram: '192GB',
-    storage: '2TB SSD',
-    cpu: '28-core CPU',
-    gpu: '60-core GPU',
-    neural: '32-core Neural Engine',
+    chip: 'M4 Max',
+    ram: '128GB',
+    storage: '1TB SSD',
+    cpu: '16-core CPU',
+    gpu: '40-core GPU',
+    neural: '16-core Neural Engine',
     type: 'desktop',
     display: 'No built-in display',
-    ports: '6x Thunderbolt 5, 2x USB-A, HDMI, Ethernet, SD',
+    ports: '3x Thunderbolt 5 (rear), 2x USB-C (front), HDMI, SD',
     color: '#8b5cf6',
-    bandwidth: '819 GB/s',
-    role: 'Primary inference and orchestration node',
+    bandwidth: '546 GB/s',
+    role: 'Primary desktop / always-on inference server',
     active: true,
     meshName: 'MacStudio',
-  },
-  'Mac Pro': {
-    name: 'Mac Pro',
-    chip: 'M4 Ultra',
-    ram: '256GB',
-    storage: '4TB SSD',
-    cpu: '32-core CPU',
-    gpu: '80-core GPU',
-    neural: '32-core Neural Engine',
-    type: 'desktop',
-    display: 'No built-in display',
-    ports: '8x Thunderbolt 5, 2x HDMI, 10Gb Ethernet',
-    color: '#f43f5e',
-    bandwidth: '819 GB/s',
-    role: 'Heavy frontier model host and cluster anchor',
-    active: true,
-    meshName: 'MacPro',
   },
 };
 

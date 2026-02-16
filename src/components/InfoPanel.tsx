@@ -7,7 +7,7 @@ import AIModelTable from './AIModelTable';
 import CloudPanel from './CloudPanel';
 import CostsPanel from './CostsPanel';
 
-type MachineTemplateKey = 'MacBook Air' | 'MacBook Pro' | 'Mac Mini' | 'Mac Studio' | 'Mac Pro';
+type MachineTemplateKey = 'MacBook Air' | 'MacBook Pro' | 'Mac Mini' | 'Mac Studio';
 
 interface InfoPanelProps {
   machines: Machine[];
@@ -24,17 +24,21 @@ interface InfoPanelProps {
   onRemoveMachine?: (id: string) => void;
 }
 
-const MACHINE_OPTIONS: MachineTemplateKey[] = ['MacBook Air', 'MacBook Pro', 'Mac Mini', 'Mac Studio', 'Mac Pro'];
+const MACHINE_OPTIONS: MachineTemplateKey[] = ['MacBook Air', 'MacBook Pro', 'Mac Mini', 'Mac Studio'];
 const MACHINE_COLORS: Record<MachineTemplateKey, string> = {
   'MacBook Air': '#10b981',
   'MacBook Pro': '#3b82f6',
   'Mac Mini': '#f59e0b',
   'Mac Studio': '#8b5cf6',
-  'Mac Pro': '#f43f5e',
 };
 
 const parseBandwidth = (bandwidth: string): number => {
   const value = Number.parseInt(bandwidth, 10);
+  return Number.isFinite(value) ? value : 0;
+};
+
+const parseRam = (ram: string): number => {
+  const value = Number.parseInt(ram, 10);
   return Number.isFinite(value) ? value : 0;
 };
 
@@ -188,6 +192,9 @@ export default function InfoPanel({
                     key={machine.id}
                     machine={machine}
                     isSelected={selectedId === machine.id}
+                    fittingModels={aiModels
+                      .filter((model) => model.vramGB <= parseRam(machine.ram) * 0.85)
+                      .map((model) => ({ name: model.name, vramGB: model.vramGB }))}
                     onSelect={onSelectMachine}
                     onToggle={onToggleMachine}
                     onUpdate={onUpdateMachine}

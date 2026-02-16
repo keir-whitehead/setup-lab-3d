@@ -3,6 +3,12 @@ import { Canvas, ThreeEvent, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, useGLTF, ContactShadows, Html, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import type { Machine, Monitor } from '../types';
+import {
+  isDuplicateNodeName,
+  isHiddenStaticNodeName,
+  isMacBookAir2NodeName,
+  matchesMeshName,
+} from './sceneMatching';
 
 interface DeskModelProps {
   machines: Machine[];
@@ -72,12 +78,12 @@ function DeskModel({ machines, monitors, onSelectMachine, onSelectMonitor, selec
 
       const name = child.name.toLowerCase();
 
-      if (name.includes('backwall') || name === 'floor' || name.startsWith('floor_')) {
+      if (isHiddenStaticNodeName(name) || isMacBookAir2NodeName(name) || isDuplicateNodeName(name)) {
         child.visible = false;
         return;
       }
 
-      const machineEntry = machineEntries.find(([key]) => name.includes(key));
+      const machineEntry = machineEntries.find(([key]) => matchesMeshName(name, key));
       if (machineEntry) {
         child.visible = machineVisibilityByMesh.get(machineEntry[0]) ?? false;
       }
@@ -97,13 +103,13 @@ function DeskModel({ machines, monitors, onSelectMachine, onSelectMonitor, selec
 
   const getInteractiveTarget = (objectName: string) => {
     for (const [key, machine] of machineEntries) {
-      if (objectName.includes(key) && machine.active) {
+      if (matchesMeshName(objectName, key) && machine.active) {
         return { type: 'machine' as const, id: machine.id };
       }
     }
 
     for (const [key, monitor] of monitorEntries) {
-      if (objectName.includes(key)) {
+      if (matchesMeshName(objectName, key)) {
         return { type: 'monitor' as const, id: monitor.id };
       }
     }
@@ -147,7 +153,7 @@ function DeskModel({ machines, monitors, onSelectMachine, onSelectMonitor, selec
 
     modelRef.current.traverse((child) => {
       if (target) return;
-      if (child.name.toLowerCase().includes(meshKey)) {
+      if (matchesMeshName(child.name.toLowerCase(), meshKey)) {
         target = child;
       }
     });
@@ -184,7 +190,7 @@ function DeskModel({ machines, monitors, onSelectMachine, onSelectMonitor, selec
 
       modelRef.current.traverse((child) => {
         if (target) return;
-        if (child.name.toLowerCase().includes(meshKey) && child.visible) {
+        if (matchesMeshName(child.name.toLowerCase(), meshKey) && child.visible) {
           target = child;
         }
       });

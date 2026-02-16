@@ -1,10 +1,10 @@
 import type { Machine } from '../types';
 import { CHIP_CONFIGS, STORAGE_OPTIONS, CHIP_PRICE_RANGES, CHIP_CPU_MAP } from '../types';
-import { AI_MODEL_DEFS } from '../data/aiModels';
 
 interface MachineCardProps {
   machine: Machine;
   isSelected: boolean;
+  fittingModels?: { name: string; vramGB: number }[];
   onSelect: (id: string) => void;
   onToggle: (id: string) => void;
   onUpdate?: (id: string, updates: Partial<Machine>) => void;
@@ -38,17 +38,11 @@ const parseCoreCount = (value: string): number => {
   return match ? Number.parseInt(match[1], 10) : 0;
 };
 
-const parseRam = (ram: string): number => {
-  const value = Number.parseInt(ram, 10);
-  return Number.isFinite(value) ? value : 0;
-};
-
 const getFormFactor = (machine: Machine): string => {
   if (machine.name === 'MacBook Pro') return '16-inch Laptop';
   if (machine.name === 'MacBook Air') return '13-inch Laptop';
   if (machine.name === 'Mac Mini') return 'Compact Desktop';
   if (machine.name === 'Mac Studio') return 'Performance Desktop';
-  if (machine.name === 'Mac Pro') return 'Tower Workstation';
   return machine.type === 'laptop' ? 'Laptop' : 'Desktop';
 };
 
@@ -116,6 +110,7 @@ const ToggleSwitch = ({ active, onClick, color }: { active: boolean; onClick: ()
 export default function MachineCard({
   machine,
   isSelected,
+  fittingModels = [],
   onSelect,
   onToggle,
   onUpdate,
@@ -127,10 +122,10 @@ export default function MachineCard({
   const priceRange = CHIP_PRICE_RANGES[machine.chip];
   const chipTier = getChipTier(machine.chip);
   const neuralCores = parseCoreCount(machine.neural);
-  const runnableModels = AI_MODEL_DEFS
-    .filter((model) => model.type === 'llm' && model.vramGB <= parseRam(machine.ram))
-    .sort((a, b) => b.vramGB - a.vramGB);
-  const featuredModels = runnableModels.slice(0, 6);
+  const maxModelPills = 8;
+  const sortedFittingModels = [...fittingModels].sort((a, b) => b.vramGB - a.vramGB);
+  const featuredFittingModels = sortedFittingModels.slice(0, maxModelPills);
+  const hiddenFittingCount = Math.max(0, sortedFittingModels.length - featuredFittingModels.length);
 
   const handleChipChange = (newChip: string) => {
     if (!onUpdate) return;
@@ -374,13 +369,13 @@ export default function MachineCard({
 
         <div style={{ marginTop: 12 }}>
           <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.42)', marginBottom: 6 }}>
-            Can run
+            Fits these models
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {featuredModels.length > 0 ? (
-              featuredModels.map((model) => (
+            {featuredFittingModels.length > 0 ? (
+              featuredFittingModels.map((model) => (
                 <span
-                  key={model.name}
+                  key={`${model.name}-${model.vramGB}`}
                   style={{
                     borderRadius: 999,
                     border: '1px solid rgba(129,140,248,0.42)',
@@ -391,11 +386,26 @@ export default function MachineCard({
                     background: 'rgba(129,140,248,0.16)',
                   }}
                 >
-                  {model.name}
+                  {`${model.name} (${model.vramGB}GB)`}
                 </span>
               ))
             ) : (
-              <span style={{ color: 'rgba(255,255,255,0.56)', fontSize: 11 }}>No LLM profiles fit this RAM.</span>
+              <span style={{ color: 'rgba(255,255,255,0.56)', fontSize: 11 }}>No model profiles fit this RAM.</span>
+            )}
+            {hiddenFittingCount > 0 && (
+              <span
+                style={{
+                  borderRadius: 999,
+                  border: '1px solid rgba(255,255,255,0.24)',
+                  color: 'rgba(255,255,255,0.74)',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  padding: '3px 8px',
+                  background: 'rgba(255,255,255,0.08)',
+                }}
+              >
+                +{hiddenFittingCount} more
+              </span>
             )}
           </div>
         </div>
@@ -407,7 +417,7 @@ export default function MachineCard({
               {priceRange ? `$${priceRange[0].toLocaleString()} - $${priceRange[1].toLocaleString()}` : 'TBD'}
             </span>
           </div>
-          <span style={{ color: 'rgba(255,255,255,0.56)', fontSize: 10 }}>{featuredModels.length} model fits</span>
+          <span style={{ color: 'rgba(255,255,255,0.56)', fontSize: 10 }}>{sortedFittingModels.length} model fits</span>
         </div>
       </div>
     </div>

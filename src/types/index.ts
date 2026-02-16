@@ -111,11 +111,6 @@ export const CHIP_CONFIGS: Record<string, ChipConfig> = {
     bandwidthMap: { '36GB': '410 GB/s', '48GB': '410 GB/s', '64GB': '546 GB/s', '128GB': '546 GB/s' },
     gpuBandwidthMap: { '32-core GPU': '410 GB/s', '40-core GPU': '546 GB/s' },
   },
-  'M4 Ultra': {
-    ramOptions: ['128GB', '192GB', '256GB'],
-    gpuOptions: ['60-core GPU', '80-core GPU'],
-    bandwidthMap: { '128GB': '546 GB/s', '192GB': '819 GB/s', '256GB': '819 GB/s' },
-  },
   'M2': {
     ramOptions: ['8GB', '16GB', '24GB'],
     gpuOptions: ['10-core GPU'],
@@ -129,7 +124,6 @@ export const CHIP_PRICE_RANGES: Record<string, [number, number]> = {
   'M4': [599, 799],
   'M4 Pro': [1599, 2399],
   'M4 Max': [2499, 4999],
-  'M4 Ultra': [6999, 9999],
   'M2': [499, 699],
 };
 
@@ -145,10 +139,6 @@ export const CHIP_CPU_MAP: Record<string, ChipCpuMapValue> = {
   'M4 Max': {
     '32-core GPU': '14-core CPU',
     '40-core GPU': '16-core CPU',
-  },
-  'M4 Ultra': {
-    '60-core GPU': '28-core CPU',
-    '80-core GPU': '32-core CPU',
   },
   'M2': '8-core CPU',
 };
