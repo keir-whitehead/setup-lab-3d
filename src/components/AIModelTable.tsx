@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
 import type { AIModelResult } from '../types';
+import { getCloudMonthlyCost, getLocalMonthlyCost } from '../data/modelEconomics';
 
 interface AIModelTableProps {
   models: AIModelResult[];
   totalRam: number;
+  activeMachineCount: number;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -31,7 +33,7 @@ const parseSpeedMetric = (speed: string): number => {
 
 const isRunnable = (status: AIModelResult['status']): boolean => status !== 'no';
 
-export default function AIModelTable({ models, totalRam }: AIModelTableProps) {
+export default function AIModelTable({ models, totalRam, activeMachineCount }: AIModelTableProps) {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
 
@@ -111,34 +113,37 @@ export default function AIModelTable({ models, totalRam }: AIModelTableProps) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {filteredModels.map((model) => {
           const runnable = isRunnable(model.status);
-          const cloudMonthly =
-            model.costPerMTokenInput !== undefined && model.costPerMTokenOutput !== undefined
-              ? (model.costPerMTokenInput + model.costPerMTokenOutput) * 50
-              : null;
-          const localMonthly = (model.localCostPerHour ?? 0.015) * 720;
+          const cloudMonthly = getCloudMonthlyCost(model);
+          const localMonthly = getLocalMonthlyCost(model.params);
           const savingsPct =
-            cloudMonthly && cloudMonthly > 0
-              ? Math.max(0, Math.round(((cloudMonthly - localMonthly) / cloudMonthly) * 100))
+            cloudMonthly !== null && cloudMonthly > localMonthly
+              ? Math.round(((cloudMonthly - localMonthly) / cloudMonthly) * 100)
               : null;
 
+          const runsOnText = (() => {
+            if (model.runsOn === 'exo cluster') return 'Requires: exo cluster';
+            if (model.runsOnAllMachines && activeMachineCount > 0) return 'Runs on: All machines';
+            if (model.runnableMachineCount > 1) return `Runs on: ${model.runnableMachineCount} machines`;
+            if (model.runnableMachineCount === 1) return `Runs on: ${model.runsOn.split(',')[0]}`;
+            return `Runs on: ${model.runsOn}`;
+          })();
+
           const statusLine = runnable
-            ? model.runsOn === 'exo cluster'
-              ? 'Requires: exo cluster'
-              : `Runs on: ${model.runsOn}`
-            : `Cannot run: need ${model.vram.replace('~', '').replace('GB', 'GB+')}`;
+            ? runsOnText
+            : `Requires ${model.vramGB}GB`;
 
           return (
             <div
               key={model.name}
               style={{
-                borderLeft: `2px solid ${STATUS_COLORS[model.status]}`,
+                borderLeft: `3px solid ${STATUS_COLORS[model.status]}`,
                 borderRadius: 10,
                 borderTop: '1px solid rgba(255,255,255,0.07)',
                 borderRight: '1px solid rgba(255,255,255,0.07)',
                 borderBottom: '1px solid rgba(255,255,255,0.07)',
                 background: runnable ? 'rgba(255,255,255,0.025)' : 'rgba(255,255,255,0.012)',
                 padding: '10px 12px',
-                opacity: runnable ? 1 : 0.58,
+                opacity: runnable ? 1 : 0.35,
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
@@ -155,7 +160,7 @@ export default function AIModelTable({ models, totalRam }: AIModelTableProps) {
                 </div>
               </div>
 
-              <div style={{ color: runnable ? '#e2e8f0' : 'rgba(255,255,255,0.45)', fontSize: 22, fontWeight: 800, marginTop: 4 }}>
+              <div style={{ color: runnable ? '#e2e8f0' : 'rgba(255,255,255,0.45)', fontSize: 24, fontWeight: 800, marginTop: 4 }}>
                 {model.speed}
               </div>
 
@@ -169,8 +174,16 @@ export default function AIModelTable({ models, totalRam }: AIModelTableProps) {
                 </div>
               )}
 
+              {runnable && cloudMonthly !== null && savingsPct === null && (
+                <div style={{ color: 'rgba(255,255,255,0.46)', fontSize: 10, marginTop: 6 }}>
+                  Cloud is cheaper for this model
+                </div>
+              )}
+
               {!runnable && (
-                <div style={{ color: '#fca5a5', fontSize: 10, marginTop: 6 }}>Upgrade to run this</div>
+                <div style={{ color: '#ef4444', fontSize: 10, marginTop: 6, fontWeight: 700 }}>
+                  Requires {model.vramGB}GB
+                </div>
               )}
             </div>
           );

@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
-import { Canvas, ThreeEvent, useThree } from '@react-three/fiber';
-import { OrbitControls, useGLTF, Environment, ContactShadows, Html } from '@react-three/drei';
+import { Canvas, ThreeEvent, useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls, useGLTF, ContactShadows, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import type { Machine, Monitor } from '../types';
 
@@ -14,7 +14,7 @@ interface DeskModelProps {
 
 interface GlowData {
   position: [number, number, number];
-  radius: number;
+  scale: number;
   color: string;
 }
 
@@ -22,22 +22,23 @@ interface LabelData {
   id: string;
   name: string;
   ram: string;
-  color: string;
   position: [number, number, number];
 }
 
 function SelectionGlow({ data }: { data: GlowData }) {
+  const materialRef = useRef<THREE.MeshBasicMaterial>(null);
+
+  useFrame(({ clock }) => {
+    if (!materialRef.current) return;
+    const pulse = (Math.sin(clock.elapsedTime * 2.6) + 1) / 2;
+    materialRef.current.opacity = 0.08 + pulse * 0.12;
+  });
+
   return (
-    <group position={data.position} rotation={[-Math.PI / 2, 0, 0]}>
-      <mesh>
-        <circleGeometry args={[data.radius * 1.3, 64]} />
-        <meshBasicMaterial color={data.color} transparent opacity={0.08} depthWrite={false} />
-      </mesh>
-      <mesh position={[0, 0.001, 0]}>
-        <circleGeometry args={[data.radius, 64]} />
-        <meshBasicMaterial color={data.color} transparent opacity={0.16} depthWrite={false} />
-      </mesh>
-    </group>
+    <mesh position={data.position} rotation={[-Math.PI / 2, 0, 0]} scale={[data.scale, data.scale, 1]}>
+      <circleGeometry args={[0.5, 64]} />
+      <meshBasicMaterial ref={materialRef} color={data.color} transparent opacity={0.08} depthWrite={false} />
+    </mesh>
   );
 }
 
@@ -52,9 +53,17 @@ function DeskModel({ machines, monitors, onSelectMachine, onSelectMonitor, selec
 
   useEffect(() => {
     if (!modelRef.current) return;
+
     modelRef.current.traverse((child) => {
       if (!(child instanceof THREE.Mesh)) return;
+
       const name = child.name.toLowerCase();
+
+      if (name.includes('wall') || name.includes('room')) {
+        child.visible = false;
+        return;
+      }
+
       const machineEntry = machineEntries.find(([key]) => name.includes(key));
       if (machineEntry) {
         child.visible = machineEntry[1].active;
@@ -107,15 +116,13 @@ function DeskModel({ machines, monitors, onSelectMachine, onSelectMonitor, selec
     setHoveredId(null);
   };
 
-  const getGlowData = (): GlowData | null => {
+  const getSelectedMachineGlow = (): GlowData | null => {
     if (!selectedId || !modelRef.current) return null;
 
     const selectedMachine = machines.find((machine) => machine.id === selectedId);
-    const selectedMonitor = monitors.find((monitor) => monitor.id === selectedId);
-    const selected = selectedMachine ?? selectedMonitor;
-    if (!selected) return null;
+    if (!selectedMachine) return null;
 
-    const meshKey = selected.meshName.toLowerCase();
+    const meshKey = selectedMachine.meshName.toLowerCase();
     let target: THREE.Object3D | null = null;
 
     modelRef.current.traverse((child) => {
@@ -130,11 +137,12 @@ function DeskModel({ machines, monitors, onSelectMachine, onSelectMonitor, selec
     const box = new THREE.Box3().setFromObject(target);
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
+    const width = Math.max(size.x, size.z);
 
     return {
-      position: [center.x, box.min.y + 0.012, center.z],
-      radius: Math.max(size.x, size.z) * 0.75,
-      color: selectedMachine?.color ?? '#818cf8',
+      position: [center.x, Math.max(0.01, box.min.y + 0.01), center.z],
+      scale: width * 1.5,
+      color: selectedMachine.color,
     };
   };
 
@@ -143,6 +151,7 @@ function DeskModel({ machines, monitors, onSelectMachine, onSelectMonitor, selec
 
     const labels: LabelData[] = [];
     const uniqueActiveMachines = new Map<string, Machine>();
+
     for (const machine of machines) {
       if (machine.active && !uniqueActiveMachines.has(machine.meshName)) {
         uniqueActiveMachines.set(machine.meshName, machine);
@@ -164,11 +173,11 @@ function DeskModel({ machines, monitors, onSelectMachine, onSelectMonitor, selec
 
       const box = new THREE.Box3().setFromObject(target);
       const center = box.getCenter(new THREE.Vector3());
+
       labels.push({
         id: machine.id,
         name: machine.name,
         ram: machine.ram,
-        color: machine.color,
         position: [center.x, box.max.y + 0.08, center.z],
       });
     }
@@ -176,7 +185,8 @@ function DeskModel({ machines, monitors, onSelectMachine, onSelectMonitor, selec
     return labels;
   };
 
-  const glowData = getGlowData();
+  const selectedMachine = machines.find((machine) => machine.id === selectedId) ?? null;
+  const glowData = getSelectedMachineGlow();
   const labels = getLabels();
 
   return (
@@ -192,27 +202,26 @@ function DeskModel({ machines, monitors, onSelectMachine, onSelectMonitor, selec
       {glowData && <SelectionGlow data={glowData} />}
 
       {labels.map((label) => {
-        const show = hoveredId === label.id || selectedId === label.id;
+        const show = hoveredId === label.id || selectedMachine?.id === label.id;
         if (!show) return null;
 
         return (
           <Html key={label.id} position={label.position} center distanceFactor={9}>
             <div
               style={{
-                background: 'rgba(10, 10, 26, 0.74)',
-                border: `1px solid ${label.color}40`,
-                borderRadius: 999,
+                background: 'rgba(0,0,0,0.7)',
+                borderRadius: 4,
                 padding: '3px 8px',
                 color: '#f1f5f9',
                 fontSize: 9,
                 fontWeight: 700,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
                 whiteSpace: 'nowrap',
-                opacity: 0.7,
-                boxShadow: `0 0 10px ${label.color}22`,
                 pointerEvents: 'none',
               }}
             >
-              {label.name} {label.ram}
+              {`${label.name} · ${label.ram}`}
             </div>
           </Html>
         );
@@ -232,17 +241,28 @@ interface SceneProps {
 export default function Scene({ machines, monitors, onSelectMachine, onSelectMonitor, selectedId }: SceneProps) {
   return (
     <Canvas
-      camera={{ position: [2.5, 2, 2.5], fov: 40 }}
-      style={{ background: 'radial-gradient(circle at 20% 0%, #151537 0%, #0a0a1a 60%, #080812 100%)' }}
+      camera={{ position: [2.8, 1.8, 2.8], fov: 38 }}
+      style={{ background: 'linear-gradient(180deg, #050510 0%, #0d0d2b 40%, #151530 100%)' }}
       shadows
+      gl={{ toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1 }}
     >
-      <fog attach="fog" args={['#0a0a1a', 5, 20]} />
+      <ambientLight intensity={0.08} />
+      <directionalLight
+        position={[3, 6, 2]}
+        intensity={1.2}
+        color="#fff8f0"
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+      />
+      <directionalLight position={[-4, 4, -3]} intensity={0.3} color="#8090ff" />
+      <pointLight position={[-1, 3, -4]} intensity={0.4} color="#c0a0ff" />
+      <pointLight position={[0, 0.05, 0]} intensity={0.15} color="#818cf8" distance={3} />
 
-      <ambientLight intensity={0.15} />
-      <directionalLight position={[5, 8, 3]} intensity={0.6} color="#fff5e8" castShadow />
-      <pointLight position={[-4, 3, -2]} intensity={0.2} color="#b0c4ff" />
-      <pointLight position={[0, 4, -5]} intensity={0.3} color="#dbeafe" />
-      <pointLight position={[0, 0.1, 0]} intensity={0.1} color="#818cf8" />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
+        <circleGeometry args={[10, 96]} />
+        <meshStandardMaterial color="#0a0a18" roughness={1} metalness={0} />
+      </mesh>
 
       <DeskModel
         machines={machines}
@@ -252,12 +272,11 @@ export default function Scene({ machines, monitors, onSelectMachine, onSelectMon
         selectedId={selectedId}
       />
 
-      <ContactShadows position={[0, -0.01, 0]} opacity={0.5} scale={10} blur={3} far={4} />
+      <ContactShadows position={[0, -0.01, 0]} opacity={0.6} scale={10} blur={2.5} far={5} resolution={512} />
 
-      <Environment preset="night" />
       <OrbitControls
         makeDefault
-        target={[0, 0.5, 0]}
+        target={[0, 0.6, 0]}
         minDistance={1.4}
         maxDistance={7.5}
         minPolarAngle={0.25}

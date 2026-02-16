@@ -47,6 +47,8 @@ export interface AIModelDef {
   desc: string;
   costPerMTokenInput?: number;
   costPerMTokenOutput?: number;
+  costPerImage?: number;
+  costPerAudioHour?: number;
   localCostPerHour?: number;
 }
 
@@ -55,15 +57,21 @@ export interface AIModelResult {
   params: string;
   quant: string;
   vram: string;
+  vramGB: number;
+  type: 'llm' | 'audio' | 'image';
   speed: string;
   status: 'fast' | 'runs' | 'distributed' | 'tight' | 'no';
   notes: string;
   runMode: string;
   runsOn: string;
+  runnableMachineCount: number;
+  runsOnAllMachines: boolean;
   category: string;
   desc: string;
   costPerMTokenInput?: number;
   costPerMTokenOutput?: number;
+  costPerImage?: number;
+  costPerAudioHour?: number;
   localCostPerHour?: number;
   monthlySavings?: number;
 }

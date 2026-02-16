@@ -205,13 +205,15 @@ export default function MachineCard({
     <div
       onClick={() => onSelect(machine.id)}
       style={{
-        border: `1px solid ${machine.color}4d`,
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderLeft: `3px solid ${machine.color}`,
         borderRadius: 14,
-        background: `linear-gradient(150deg, ${machine.color}1f, rgba(255,255,255,0.03))`,
+        background: 'rgba(255,255,255,0.03)',
         padding: 14,
         cursor: 'pointer',
         position: 'relative',
         opacity: machine.active ? 1 : 0.75,
+        transition: 'all 0.2s ease',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>

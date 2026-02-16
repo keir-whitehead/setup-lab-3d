@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Machine, AIModelResult } from '../types';
 import { CHIP_PRICE_RANGES } from '../types';
+import { getCloudMonthlyCost, getLocalMonthlyCost } from '../data/modelEconomics';
 
 interface CostsPanelProps {
   machines: Machine[];
@@ -19,28 +20,34 @@ export default function CostsPanel({ machines, aiModels }: CostsPanelProps) {
     return sum + (range ? Math.round((range[0] + range[1]) / 2) : 0);
   }, 0);
 
-  const avgPowerKwPerMachine = 0.09;
-  const monthlyElectricity =
-    activeMachines.length * avgPowerKwPerMachine * hoursPerDay * 30 * electricityRate;
-
   const cloudMonthlyCost = aiModels.reduce((sum, model) => {
     if (model.status === 'no') return sum;
-    if (model.costPerMTokenInput === undefined || model.costPerMTokenOutput === undefined) return sum;
-    return sum + (model.costPerMTokenInput + model.costPerMTokenOutput) * 50;
+    const modelCloud = getCloudMonthlyCost(model);
+    return sum + (modelCloud ?? 0);
   }, 0);
 
-  const localMonthlyCost = monthlyElectricity;
+  const localMonthlyCost = aiModels.reduce((sum, model) => {
+    if (model.status === 'no') return sum;
+    return sum + getLocalMonthlyCost(model.params, electricityRate, hoursPerDay);
+  }, 0);
   const monthlySavings = cloudMonthlyCost - localMonthlyCost;
   const breakEvenMonths = monthlySavings > 0 ? Math.ceil(hardwareCost / monthlySavings) : Infinity;
 
   const roiMonths = [3, 6, 12, 24, 36];
+  const savingsPositive = monthlySavings >= 0;
+
+  const getRoiColor = (progress: number, net: number): string => {
+    if (net < 0) return '#ef4444';
+    const hue = 48 + Math.round((Math.min(100, progress) / 100) * 72);
+    return `hsl(${hue} 82% 56%)`;
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div
         style={{
-          background: 'rgba(34,197,94,0.1)',
-          border: '1px solid rgba(34,197,94,0.35)',
+          background: savingsPositive ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+          border: savingsPositive ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(239,68,68,0.35)',
           borderRadius: 14,
           padding: '14px 16px',
         }}
@@ -49,7 +56,7 @@ export default function CostsPanel({ machines, aiModels }: CostsPanelProps) {
         <div
           style={{
             marginTop: 4,
-            color: '#4ade80',
+            color: savingsPositive ? '#4ade80' : '#f87171',
             fontSize: 34,
             lineHeight: 1,
             fontWeight: 900,
@@ -60,7 +67,7 @@ export default function CostsPanel({ machines, aiModels }: CostsPanelProps) {
           }}
         >
           <span>↗</span>
-          <span>${Math.max(0, Math.round(monthlySavings)).toLocaleString()}</span>
+          <span>${Math.round(monthlySavings).toLocaleString()}</span>
         </div>
       </div>
 
@@ -142,6 +149,7 @@ export default function CostsPanel({ machines, aiModels }: CostsPanelProps) {
             const recovered = Math.max(0, monthlySavings * months);
             const progress = hardwareCost > 0 ? Math.min(100, Math.round((recovered / hardwareCost) * 100)) : 0;
             const net = recovered - hardwareCost;
+            const barColor = getRoiColor(progress, net);
 
             return (
               <div key={months}>
@@ -159,10 +167,11 @@ export default function CostsPanel({ machines, aiModels }: CostsPanelProps) {
                 </div>
                 <div
                   style={{
-                    height: 7,
+                    height: 9,
                     borderRadius: 999,
                     background: 'rgba(255,255,255,0.08)',
                     overflow: 'hidden',
+                    position: 'relative',
                   }}
                 >
                   <div
@@ -170,9 +179,22 @@ export default function CostsPanel({ machines, aiModels }: CostsPanelProps) {
                       width: `${progress}%`,
                       height: '100%',
                       borderRadius: 999,
-                      background: progress >= 100 ? '#22c55e' : '#818cf8',
+                      background: barColor,
                     }}
                   />
+                  <span
+                    style={{
+                      position: 'absolute',
+                      right: 6,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: 'rgba(255,255,255,0.72)',
+                      fontSize: 9,
+                      fontFamily: "'JetBrains Mono', monospace",
+                    }}
+                  >
+                    {progress}%
+                  </span>
                 </div>
               </div>
             );
@@ -202,7 +224,7 @@ export default function CostsPanel({ machines, aiModels }: CostsPanelProps) {
             padding: 0,
           }}
         >
-          {showSettings ? 'Hide' : 'Show'} Settings
+          ⚙ Settings {showSettings ? '▾' : '▸'}
         </button>
 
         {showSettings && (

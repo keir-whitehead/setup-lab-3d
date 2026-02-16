@@ -1,4 +1,5 @@
 import type { AIModelDef, AIModelResult, CloudService, Machine } from '../types';
+import { getCloudMonthlyCost, getLocalCostPerHour, getLocalMonthlyCost } from './modelEconomics';
 
 export const AI_MODEL_DEFS: AIModelDef[] = [
   {
@@ -326,12 +327,11 @@ export function getAIModels(activeMachines: Machine[]): AIModelResult[] {
       runsOn = `Need ${model.vramGB}GB+`;
     }
 
-    let monthlySavings: number | undefined;
-    if (model.costPerMTokenInput !== undefined && model.costPerMTokenOutput !== undefined && status !== 'no') {
-      const cloudMonthlyCost = (model.costPerMTokenInput + model.costPerMTokenOutput) * 50;
-      const localMonthlyCost = (model.localCostPerHour ?? 0.015) * 720;
-      monthlySavings = cloudMonthlyCost - localMonthlyCost;
-    }
+    const localCostPerHour = getLocalCostPerHour(model.params);
+    const cloudMonthlyCost = getCloudMonthlyCost(model);
+    const localMonthlyCost = getLocalMonthlyCost(model.params);
+    const monthlySavings =
+      status !== 'no' && cloudMonthlyCost !== null ? cloudMonthlyCost - localMonthlyCost : undefined;
 
     const normalizedSpeed = `${Math.max(0, Math.round(parseSpeedMetric(speed)))} ${model.unit}`;
 
@@ -340,16 +340,22 @@ export function getAIModels(activeMachines: Machine[]): AIModelResult[] {
       params: model.params,
       quant: model.quant,
       vram: `~${model.vramGB}GB`,
+      vramGB: model.vramGB,
+      type: model.type,
       speed: normalizedSpeed,
       status,
       notes: note,
       runMode,
       runsOn,
+      runnableMachineCount: fittingMachines.length,
+      runsOnAllMachines: fitsOnOne && fittingMachines.length === activeMachines.length,
       category: model.category,
       desc: model.desc,
       costPerMTokenInput: model.costPerMTokenInput,
       costPerMTokenOutput: model.costPerMTokenOutput,
-      localCostPerHour: model.localCostPerHour,
+      costPerImage: model.costPerImage,
+      costPerAudioHour: model.costPerAudioHour,
+      localCostPerHour,
       monthlySavings,
     };
   });

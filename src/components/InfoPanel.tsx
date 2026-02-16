@@ -75,20 +75,18 @@ export default function InfoPanel({
     >
       <div
         style={{
-          padding: '24px 24px 16px',
+          padding: '14px 24px 12px',
           borderBottom: '1px solid transparent',
           borderImage: 'linear-gradient(90deg, rgba(129,140,248,0), rgba(129,140,248,0.65), rgba(129,140,248,0)) 1',
         }}
       >
-        <div style={{ fontSize: 36, lineHeight: 1, fontWeight: 800, color: '#f8fafc' }}>
-          {totalRam}GB
-        </div>
-        <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.7)', fontSize: 14 }}>
-          Unified Memory Pool
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <span style={{ fontSize: 24, lineHeight: 1, fontWeight: 800, color: '#f8fafc' }}>{totalRam}GB</span>
+          <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12 }}>unified memory</span>
         </div>
         <div
           style={{
-            marginTop: 14,
+            marginTop: 8,
             display: 'flex',
             alignItems: 'center',
             gap: 8,
@@ -108,7 +106,7 @@ export default function InfoPanel({
 
         <div
           style={{
-            marginTop: 18,
+            marginTop: 10,
             background: '#1a1a2e',
             borderRadius: 999,
             padding: 4,
@@ -142,7 +140,27 @@ export default function InfoPanel({
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+      <style>{`
+        .info-panel-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255,255,255,0.1) transparent;
+        }
+
+        .info-panel-scroll::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        .info-panel-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .info-panel-scroll::-webkit-scrollbar-thumb {
+          background: rgba(255,255,255,0.12);
+          border-radius: 999px;
+        }
+      `}</style>
+
+      <div className="info-panel-scroll" style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
         {tab === 'specs' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             <div>
@@ -269,7 +287,7 @@ export default function InfoPanel({
           </div>
         )}
 
-        {tab === 'ai' && <AIModelTable models={aiModels} totalRam={totalRam} />}
+        {tab === 'ai' && <AIModelTable models={aiModels} totalRam={totalRam} activeMachineCount={activeMachines.length} />}
         {tab === 'costs' && <CostsPanel machines={machines} aiModels={aiModels} />}
         {tab === 'cloud' && <CloudPanel services={cloudServices} />}
       </div>
