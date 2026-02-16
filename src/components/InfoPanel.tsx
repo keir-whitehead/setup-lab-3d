@@ -18,6 +18,8 @@ interface InfoPanelProps {
   onSelectMonitor: (id: string) => void;
   onToggleMachine: (id: string) => void;
   onUpdateMachine?: (id: string, updates: Partial<Machine>) => void;
+  onAddMachine?: () => void;
+  onRemoveMachine?: (id: string) => void;
 }
 
 export default function InfoPanel({
@@ -31,6 +33,8 @@ export default function InfoPanel({
   onSelectMonitor,
   onToggleMachine,
   onUpdateMachine,
+  onAddMachine,
+  onRemoveMachine,
 }: InfoPanelProps) {
   const [tab, setTab] = useState<InfoTab>('specs');
   const activeMachines = machines.filter((m) => m.active);
@@ -59,6 +63,10 @@ export default function InfoPanel({
     if (gbMatch) return s + parseFloat(gbMatch[1]) / 1000;
     return s;
   }, 0);
+  const combinedBandwidth = activeMachines.reduce((sum, m) => {
+    const value = parseInt(m.bandwidth, 10);
+    return sum + (Number.isFinite(value) ? value : 0);
+  }, 0);
 
   return (
     <div
@@ -85,6 +93,39 @@ export default function InfoPanel({
           }}
         >
           {totalRam}GB unified · {activeMachines.length} active
+        </div>
+
+        <div
+          style={{
+            marginBottom: 14,
+            background: 'rgba(129,140,248,0.08)',
+            border: '1px solid rgba(129,140,248,0.18)',
+            borderRadius: 8,
+            padding: '8px 10px',
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr 1fr',
+            gap: 8,
+          }}
+        >
+          {[
+            { label: 'Machines', value: `${activeMachines.length}` },
+            { label: 'Total RAM', value: `${totalRamNum}GB` },
+            { label: 'Bandwidth', value: `${combinedBandwidth} GB/s` },
+          ].map((item) => (
+            <div key={item.label}>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)' }}>{item.label}</div>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  color: '#a5b4fc',
+                  fontFamily: "'JetBrains Mono', monospace",
+                }}
+              >
+                {item.value}
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Tabs */}
@@ -118,17 +159,35 @@ export default function InfoPanel({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Machines */}
             <div>
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.1em',
-                  color: 'rgba(255,255,255,0.2)',
-                  marginBottom: 8,
-                }}
-              >
-                Machines
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                    color: 'rgba(255,255,255,0.2)',
+                  }}
+                >
+                  Machines
+                </div>
+                {onAddMachine && (
+                  <button
+                    onClick={onAddMachine}
+                    style={{
+                      border: '1px solid rgba(129,140,248,0.35)',
+                      background: 'rgba(129,140,248,0.12)',
+                      color: '#a5b4fc',
+                      borderRadius: 6,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      padding: '4px 8px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Add Machine
+                  </button>
+                )}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {machines.map((m) => (
@@ -139,6 +198,8 @@ export default function InfoPanel({
                     onSelect={onSelectMachine}
                     onToggle={onToggleMachine}
                     onUpdate={onUpdateMachine}
+                    onRemove={onRemoveMachine}
+                    canRemove={machines.length > 1}
                   />
                 ))}
               </div>

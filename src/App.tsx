@@ -53,6 +53,39 @@ export default function App() {
     );
   }, []);
 
+  const handleAddMachine = useCallback(() => {
+    const id = `mac-mini-${Date.now()}`;
+    const newMachine: Machine = {
+      id,
+      name: 'Mac Mini',
+      chip: 'M4 Pro',
+      ram: '48GB',
+      storage: '512GB SSD',
+      cpu: '14-core CPU',
+      gpu: '20-core GPU',
+      neural: '16-core Neural Engine',
+      type: 'desktop',
+      display: 'No built-in display',
+      ports: '3x Thunderbolt 5, 2x USB-C, HDMI, Ethernet',
+      color: '#f59e0b',
+      bandwidth: '273 GB/s',
+      role: 'Compact desktop / elastic worker node',
+      active: true,
+      meshName: 'Mac_Mini',
+    };
+    setMachines((prev) => [...prev, newMachine]);
+    setSelectedId(id);
+  }, []);
+
+  const handleRemoveMachine = useCallback((id: string) => {
+    setMachines((prev) => {
+      if (prev.length <= 1) return prev;
+      const filtered = prev.filter((m) => m.id !== id);
+      return filtered.length === 0 ? prev : filtered;
+    });
+    setSelectedId((prev) => (prev === id ? null : prev));
+  }, []);
+
   return (
     <div style={{ display: 'flex', width: '100vw', height: '100vh' }}>
       {/* 3D Canvas — left 70% */}
@@ -109,6 +142,8 @@ export default function App() {
           onSelectMonitor={handleSelectMonitor}
           onToggleMachine={handleToggleMachine}
           onUpdateMachine={handleUpdateMachine}
+          onAddMachine={handleAddMachine}
+          onRemoveMachine={handleRemoveMachine}
         />
       </div>
     </div>

@@ -65,6 +65,123 @@ export const AI_MODEL_DEFS: AIModelDef[] = [
     costPerMTokenInput: 0.08, costPerMTokenOutput: 0.22, localCostPerHour: 0.015,
   },
   {
+    name: 'Qwen 3 32B', params: '32B', quant: 'Q4_K_M', vramGB: 18,
+    category: 'general', type: 'llm',
+    singleMLX: 28, singleOllama: 22, exoSpeed: null,
+    exoNote: 'not needed',
+    unit: 'tok/s',
+    desc: 'Qwen 3 mid-large model for coding and general assistant tasks.',
+    costPerMTokenInput: 0.15, costPerMTokenOutput: 0.45, localCostPerHour: 0.015,
+  },
+  {
+    name: 'Llama 4 Scout', params: '109B MoE (17B active)', quant: 'Q4_K_M', vramGB: 65,
+    category: 'general', type: 'llm',
+    singleMLX: 18, singleOllama: null, exoSpeed: 14,
+    exoNote: '10M context model with MoE active parameter footprint',
+    unit: 'tok/s',
+    desc: 'Large-context MoE model with 10M context support and strong general performance.',
+    costPerMTokenInput: 0.05, costPerMTokenOutput: 0.25, localCostPerHour: 0.015,
+  },
+  {
+    name: 'Gemma 3 27B', params: '27B', quant: 'Q4_K_M', vramGB: 16,
+    category: 'general', type: 'llm',
+    singleMLX: 25, singleOllama: null, exoSpeed: null,
+    exoNote: 'not needed',
+    unit: 'tok/s',
+    desc: 'Gemma 3 27B balances quality and speed for daily local assistant use.',
+    costPerMTokenInput: 0.08, costPerMTokenOutput: 0.22, localCostPerHour: 0.015,
+  },
+  {
+    name: 'Mistral Small 3.1', params: '24B', quant: 'Q4_K_M', vramGB: 14,
+    category: 'general', type: 'llm',
+    singleMLX: 30, singleOllama: null, exoSpeed: null,
+    exoNote: 'not needed',
+    unit: 'tok/s',
+    desc: 'Fast 24B class model suited to local coding and chat workloads.',
+    costPerMTokenInput: 0.10, costPerMTokenOutput: 0.30, localCostPerHour: 0.015,
+  },
+  {
+    name: 'DeepSeek R1 Distilled 32B', params: '32B', quant: 'Q4_K_M', vramGB: 18,
+    category: 'reasoning', type: 'llm',
+    singleMLX: 25, singleOllama: null, exoSpeed: null,
+    exoNote: 'not needed',
+    unit: 'tok/s',
+    desc: 'Reasoning-focused distilled model with lower VRAM than frontier reasoning models.',
+    costPerMTokenInput: 0.14, costPerMTokenOutput: 0.56, localCostPerHour: 0.015,
+  },
+  {
+    name: 'QwQ 32B', params: '32B', quant: 'Q4_K_M', vramGB: 18,
+    category: 'reasoning', type: 'llm',
+    singleMLX: 25, singleOllama: null, exoSpeed: null,
+    exoNote: 'not needed',
+    unit: 'tok/s',
+    desc: 'QwQ reasoning model tuned for deliberate multi-step inference.',
+    costPerMTokenInput: 0.15, costPerMTokenOutput: 0.60, localCostPerHour: 0.015,
+  },
+  {
+    name: 'Qwen 2.5 Coder 32B', params: '32B', quant: 'Q4_K_M', vramGB: 18,
+    category: 'general', type: 'llm',
+    singleMLX: 28, singleOllama: null, exoSpeed: null,
+    exoNote: 'not needed',
+    unit: 'tok/s',
+    desc: 'Coder-specialized Qwen model for repositories, refactors, and code chat.',
+    costPerMTokenInput: 0.15, costPerMTokenOutput: 0.45, localCostPerHour: 0.015,
+  },
+  {
+    name: 'DeepSeek Coder V2 16B', params: '16B', quant: 'Q4_K_M', vramGB: 9,
+    category: 'general', type: 'llm',
+    singleMLX: 45, singleOllama: null, exoSpeed: null,
+    exoNote: 'not needed',
+    unit: 'tok/s',
+    desc: 'Efficient coder model with high token throughput on Apple Silicon.',
+    costPerMTokenInput: 0.07, costPerMTokenOutput: 0.14, localCostPerHour: 0.015,
+  },
+  {
+    name: 'Gemma 3 4B', params: '4B', quant: 'Q4_K_M', vramGB: 2.5,
+    category: 'small', type: 'llm',
+    singleMLX: 100, singleOllama: null, exoSpeed: null,
+    exoNote: 'not needed',
+    unit: 'tok/s',
+    desc: 'Small high-speed assistant model for lightweight local tasks.',
+    costPerMTokenInput: 0.02, costPerMTokenOutput: 0.05, localCostPerHour: 0.015,
+  },
+  {
+    name: 'Llama 3.2 3B', params: '3B', quant: 'Q4_K_M', vramGB: 2,
+    category: 'small', type: 'llm',
+    singleMLX: 120, singleOllama: null, exoSpeed: null,
+    exoNote: 'not needed',
+    unit: 'tok/s',
+    desc: 'Very small model for local automation and rapid low-cost inference.',
+    costPerMTokenInput: 0.01, costPerMTokenOutput: 0.03, localCostPerHour: 0.015,
+  },
+  {
+    name: 'Qwen 3 8B', params: '8B', quant: 'Q4_K_M', vramGB: 5,
+    category: 'small', type: 'llm',
+    singleMLX: 65, singleOllama: null, exoSpeed: null,
+    exoNote: 'not needed',
+    unit: 'tok/s',
+    desc: 'Compact Qwen variant with strong quality per GB for laptops and minis.',
+    costPerMTokenInput: 0.04, costPerMTokenOutput: 0.10, localCostPerHour: 0.015,
+  },
+  {
+    name: 'Llama 4 Maverick', params: '400B MoE (17B active, 128 experts)', quant: 'Q4', vramGB: 230,
+    category: 'frontier', type: 'llm',
+    singleMLX: null, singleOllama: null, exoSpeed: 10,
+    exoNote: 'distributed only',
+    unit: 'tok/s',
+    desc: 'Frontier MoE model designed for distributed exo-style inference only.',
+    costPerMTokenInput: 0.10, costPerMTokenOutput: 0.40, localCostPerHour: 0.015,
+  },
+  {
+    name: 'SDXL Turbo', params: '3.5B', quant: 'FP16', vramGB: 4,
+    category: 'image', type: 'image',
+    singleMLX: null, singleOllama: null, exoSpeed: null,
+    exoNote: 'not applicable',
+    unit: 's/img', imgSpeed: 3,
+    desc: 'Fast distilled SDXL image generation around three seconds per image.',
+    localCostPerHour: 0.015,
+  },
+  {
     name: 'Whisper Large V3 Turbo', params: '809M', quant: 'FP16', vramGB: 2,
     category: 'audio', type: 'audio',
     singleMLX: null, singleOllama: null, exoSpeed: null,
@@ -119,11 +236,13 @@ export function getAIModels(
   _studioCount: number
 ): AIModelResult[] {
   return AI_MODEL_DEFS.map((m) => {
-    const fitsOnOne = m.vramGB <= maxSingleMachine * 0.85;
-    const fitsDistributed = m.vramGB <= totalRam * 0.9;
-    const lotsOfRoom = m.vramGB <= maxSingleMachine * 0.5;
-    const headroomPct = Math.round((1 - m.vramGB / maxSingleMachine) * 100);
-    const combinedHeadroomPct = Math.round((1 - m.vramGB / totalRam) * 100);
+    const safeMaxSingle = Math.max(maxSingleMachine, 1);
+    const safeTotalRam = Math.max(totalRam, 1);
+    const fitsOnOne = m.vramGB <= safeMaxSingle * 0.85;
+    const fitsDistributed = m.vramGB <= safeTotalRam * 0.9;
+    const lotsOfRoom = m.vramGB <= safeMaxSingle * 0.5;
+    const headroomPct = Math.round((1 - m.vramGB / safeMaxSingle) * 100);
+    const combinedHeadroomPct = Math.round((1 - m.vramGB / safeTotalRam) * 100);
     let status: AIModelResult['status'];
     let speed: string;
     let runMode: string;
@@ -152,21 +271,28 @@ export function getAIModels(
       };
     }
 
-    const fmtLLM = (mlx: string, ollama: string) => `${mlx} (MLX) / ${ollama} (Ollama)`;
+    const fmtLLM = (mlx: number | null, ollama: number | null) => {
+      const mlxText = mlx !== null ? `~${mlx} t/s (MLX)` : '— (MLX)';
+      const ollamaText = ollama !== null ? `~${ollama} t/s (Ollama)` : '— (Ollama)';
+      return `${mlxText} / ${ollamaText}`;
+    };
 
     if (lotsOfRoom) {
       status = 'fast';
-      speed = fmtLLM(`~${m.singleMLX} t/s`, `~${m.singleOllama} t/s`);
+      speed = fmtLLM(m.singleMLX, m.singleOllama);
       runMode = 'Any single machine';
       note = `${headroomPct}% RAM headroom. No need for distributed.`;
     } else if (fitsOnOne) {
       status = headroomPct > 20 ? 'fast' : 'runs';
-      speed = fmtLLM(`~${m.singleMLX} t/s`, `~${m.singleOllama} t/s`);
+      speed = fmtLLM(m.singleMLX, m.singleOllama);
       runMode = m.vramGB <= 64 * 0.85 ? 'Any single machine' : 'Studio (128GB)';
       note = `${headroomPct}% headroom on largest machine.`;
     } else if (fitsDistributed) {
       status = 'distributed';
-      const exoTps = Math.round((m.exoSpeed ?? 8) * (1 + (machineCount - 2) * 0.25));
+      const baseExoSpeed = m.exoSpeed ?? 8;
+      const distributedOnly = m.exoNote.toLowerCase().includes('distributed only');
+      const scale = distributedOnly ? 1 : (1 + Math.max(machineCount - 2, 0) * 0.25);
+      const exoTps = Math.round(baseExoSpeed * scale);
       speed = `~${exoTps} t/s (exo + RDMA)`;
       runMode = `exo across ${machineCount} machines`;
       note = `Requires distributed inference. ${combinedHeadroomPct}% headroom across ${totalRam}GB.`;
@@ -179,7 +305,7 @@ export function getAIModels(
 
     // Calculate monthly savings estimate
     let monthlySavings: number | undefined;
-    if (m.costPerMTokenInput && m.costPerMTokenOutput && status !== 'no') {
+    if (m.costPerMTokenInput !== undefined && m.costPerMTokenOutput !== undefined && status !== 'no') {
       // Assume ~100M tokens/month usage
       const cloudMonthlyCost = (m.costPerMTokenInput + m.costPerMTokenOutput) * 50;
       const localMonthlyCost = (m.localCostPerHour ?? 0.015) * 720; // 24/7

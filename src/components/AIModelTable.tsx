@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { AIModelResult } from '../types';
 
 interface AIModelTableProps {
@@ -14,31 +14,43 @@ const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }
   no: { bg: '#ef444420', color: '#ef4444', label: '✕ No' },
 };
 
-const CATEGORY_ORDER = ['general', 'reasoning', 'frontier', 'small', 'image', 'audio'];
+const CATEGORY_ORDER = ['general', 'reasoning', 'small', 'frontier', 'image', 'audio'];
 const CATEGORY_LABELS: Record<string, string> = {
   general: 'General',
   reasoning: 'Reasoning',
   frontier: 'Frontier',
   small: 'Small',
-  image: 'Image Generation',
+  image: 'Image',
   audio: 'Audio',
 };
 
 export default function AIModelTable({ models, totalRam }: AIModelTableProps) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+
+  const filteredModels = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return models.filter((model) => {
+      const matchesCategory = categoryFilter === 'all' || model.category === categoryFilter;
+      const matchesSearch = q.length === 0 || model.name.toLowerCase().includes(q);
+      return matchesCategory && matchesSearch;
+    });
+  }, [models, search, categoryFilter]);
 
   const grouped: Record<string, AIModelResult[]> = {};
-  for (const m of models) {
+  for (const m of filteredModels) {
     if (!grouped[m.category]) grouped[m.category] = [];
     grouped[m.category].push(m);
   }
 
-  const localCount = models.filter((m) => m.status !== 'no').length;
-  const totalSavings = models.reduce((s, m) => s + (m.monthlySavings ?? 0), 0);
-  const usedVram = models
+  const localCount = filteredModels.filter((m) => m.status !== 'no').length;
+  const totalSavings = filteredModels.reduce((s, m) => s + (m.monthlySavings ?? 0), 0);
+  const usedVram = filteredModels
     .filter((m) => m.status !== 'no')
     .reduce((s, m) => s + parseFloat(m.vram.replace(/[^0-9.]/g, '')), 0);
-  const vramPct = Math.min(100, Math.round((usedVram / totalRam) * 100));
+  const safeTotalRam = Math.max(totalRam, 1);
+  const vramPct = Math.min(100, Math.round((usedVram / safeTotalRam) * 100));
 
   const toggle = (cat: string) => setCollapsed((p) => ({ ...p, [cat]: !p[cat] }));
 
@@ -82,7 +94,49 @@ export default function AIModelTable({ models, totalRam }: AIModelTableProps) {
           fontSize: 9, color: 'rgba(255,255,255,0.25)', marginTop: 3,
           fontFamily: "'JetBrains Mono', monospace",
         }}>
-          {totalRam}GB total unified memory
+          {totalRam}GB total unified memory · {filteredModels.length} shown
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search models..."
+          style={{
+            width: '100%',
+            borderRadius: 8,
+            border: '1px solid rgba(255,255,255,0.1)',
+            background: 'rgba(255,255,255,0.04)',
+            color: '#e2e8f0',
+            fontSize: 11,
+            padding: '8px 10px',
+            outline: 'none',
+          }}
+        />
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {['all', 'general', 'reasoning', 'small', 'frontier', 'image', 'audio'].map((cat) => {
+            const label = cat === 'all' ? 'All' : (CATEGORY_LABELS[cat] ?? cat);
+            const active = categoryFilter === cat;
+            return (
+              <button
+                key={cat}
+                onClick={() => setCategoryFilter(cat)}
+                style={{
+                  border: active ? '1px solid rgba(129,140,248,0.55)' : '1px solid rgba(255,255,255,0.08)',
+                  background: active ? 'rgba(129,140,248,0.15)' : 'rgba(255,255,255,0.03)',
+                  color: active ? '#a5b4fc' : 'rgba(255,255,255,0.5)',
+                  borderRadius: 999,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  padding: '5px 9px',
+                  cursor: 'pointer',
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
       </div>
 

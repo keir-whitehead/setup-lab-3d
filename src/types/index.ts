@@ -82,6 +82,7 @@ export interface ChipConfig {
   ramOptions: string[];
   gpuOptions: string[];
   bandwidthMap: Record<string, string>;
+  gpuBandwidthMap?: Record<string, string>;
 }
 
 export const CHIP_CONFIGS: Record<string, ChipConfig> = {
@@ -97,8 +98,9 @@ export const CHIP_CONFIGS: Record<string, ChipConfig> = {
   },
   'M4 Max': {
     ramOptions: ['36GB', '48GB', '64GB', '128GB'],
-    gpuOptions: ['40-core GPU'],
-    bandwidthMap: { '36GB': '273 GB/s', '48GB': '273 GB/s', '64GB': '546 GB/s', '128GB': '546 GB/s' },
+    gpuOptions: ['32-core GPU', '40-core GPU'],
+    bandwidthMap: { '36GB': '410 GB/s', '48GB': '410 GB/s', '64GB': '546 GB/s', '128GB': '546 GB/s' },
+    gpuBandwidthMap: { '32-core GPU': '410 GB/s', '40-core GPU': '546 GB/s' },
   },
   'M4 Ultra': {
     ramOptions: ['128GB', '192GB', '256GB'],
@@ -122,10 +124,22 @@ export const CHIP_PRICE_RANGES: Record<string, [number, number]> = {
   'M2': [499, 699],
 };
 
-export const CHIP_CPU_MAP: Record<string, string> = {
-  'M4': '10-core CPU',
-  'M4 Pro': '14-core CPU',
-  'M4 Max': '16-core CPU',
-  'M4 Ultra': '32-core CPU',
+export type ChipCpuMapValue = string | Record<string, string>;
+
+export const CHIP_CPU_MAP: Record<string, ChipCpuMapValue> = {
+  'M4': {
+    '10-core GPU': '10-core CPU',
+  },
+  'M4 Pro': {
+    '20-core GPU': '14-core CPU',
+  },
+  'M4 Max': {
+    '32-core GPU': '14-core CPU',
+    '40-core GPU': '16-core CPU',
+  },
+  'M4 Ultra': {
+    '60-core GPU': '28-core CPU',
+    '80-core GPU': '32-core CPU',
+  },
   'M2': '8-core CPU',
 };

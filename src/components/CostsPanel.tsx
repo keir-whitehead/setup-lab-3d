@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Machine, AIModelResult } from '../types';
 import { CHIP_PRICE_RANGES } from '../types';
 
@@ -7,6 +8,8 @@ interface CostsPanelProps {
 }
 
 export default function CostsPanel({ machines, aiModels }: CostsPanelProps) {
+  const [electricityRate, setElectricityRate] = useState(0.30);
+  const [hoursPerDay, setHoursPerDay] = useState(12);
   const activeMachines = machines.filter((m) => m.active);
 
   // Hardware cost
@@ -15,8 +18,10 @@ export default function CostsPanel({ machines, aiModels }: CostsPanelProps) {
     return sum + (range ? Math.round((range[0] + range[1]) / 2) : 0);
   }, 0);
 
-  // Monthly electricity (~$0.015/hr per machine, 24/7)
-  const monthlyElectricity = activeMachines.length * 0.015 * 720;
+  // Monthly electricity estimate (kWh * rate)
+  const avgPowerKwPerMachine = 0.09;
+  const monthlyElectricity =
+    activeMachines.length * avgPowerKwPerMachine * hoursPerDay * 30 * electricityRate;
 
   // Cloud equivalent monthly cost (sum of all runnable models)
   const runnableModels = aiModels.filter((m) => m.status !== 'no');
@@ -66,6 +71,56 @@ export default function CostsPanel({ machines, aiModels }: CostsPanelProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div style={sectionLabel}>Energy Inputs</div>
+      <div style={{
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.05)',
+        borderRadius: 8,
+        padding: '10px 12px',
+        marginBottom: 6,
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+            <span style={labelSt}>Electricity rate (AUD/kWh)</span>
+            <input
+              type="number"
+              min={0}
+              step={0.01}
+              value={electricityRate}
+              onChange={(e) => setElectricityRate(Math.max(0, Number(e.target.value) || 0))}
+              style={{
+                width: 90,
+                borderRadius: 6,
+                border: '1px solid rgba(255,255,255,0.12)',
+                background: 'rgba(255,255,255,0.04)',
+                color: '#e2e8f0',
+                fontSize: 11,
+                fontFamily: "'JetBrains Mono', monospace",
+                padding: '5px 6px',
+                outline: 'none',
+              }}
+            />
+          </div>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+              <span style={labelSt}>Hours per day</span>
+              <span style={{ ...valueSt, fontSize: 11, color: '#a5b4fc' }}>
+                {hoursPerDay}h/day
+              </span>
+            </div>
+            <input
+              type="range"
+              min={1}
+              max={24}
+              step={1}
+              value={hoursPerDay}
+              onChange={(e) => setHoursPerDay(Number(e.target.value))}
+              style={{ width: '100%' }}
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Hardware Costs */}
       <div style={sectionLabel}>Hardware Investment</div>
       <div style={{
@@ -102,7 +157,7 @@ export default function CostsPanel({ machines, aiModels }: CostsPanelProps) {
         padding: '6px 12px',
       }}>
         <div style={rowStyle}>
-          <span style={labelSt}>Electricity ({activeMachines.length} machines 24/7)</span>
+          <span style={labelSt}>Electricity ({activeMachines.length} machines, {hoursPerDay}h/day)</span>
           <span style={{ ...valueSt, color: '#22c55e' }}>${localMonthlyCost.toFixed(0)}/mo</span>
         </div>
         <div style={rowStyle}>
@@ -178,7 +233,7 @@ export default function CostsPanel({ machines, aiModels }: CostsPanelProps) {
         fontStyle: 'italic',
       }}>
         Estimates assume ~100M tokens/month usage across runnable models.
-        Electricity at ~$0.015/hr per machine (Apple Silicon idle+inference average).
+        Electricity assumes ~90W average per active machine.
         Cloud costs based on current API pricing per 1M tokens.
       </div>
     </div>
