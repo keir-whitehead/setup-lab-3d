@@ -6,34 +6,58 @@ interface CloudPanelProps {
 
 export default function CloudPanel({ services }: CloudPanelProps) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {services.map((svc) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {services.map((service) => (
         <div
-          key={svc.name}
+          key={service.name}
           style={{
             background: 'rgba(255,255,255,0.02)',
-            border: '1px solid rgba(255,255,255,0.05)',
-            borderRadius: 8,
-            padding: '10px 12px',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 12,
+            padding: '12px 14px',
           }}
         >
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', marginBottom: 4 }}>
-            {svc.name}
-          </div>
+          <div style={{ color: '#f8fafc', fontSize: 14, fontWeight: 800 }}>{service.name}</div>
+          <div style={{ color: 'rgba(255,255,255,0.54)', fontSize: 11, marginTop: 2 }}>{service.tier}</div>
+
           <div
             style={{
-              fontSize: 10,
-              color: 'rgba(255,255,255,0.35)',
-              fontFamily: "'JetBrains Mono', monospace",
-              lineHeight: 1.7,
+              marginTop: 8,
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '6px 10px',
+              fontSize: 11,
             }}
           >
-            <div style={{ color: 'rgba(255,255,255,0.5)' }}>{svc.tier}</div>
-            <div>{svc.use}</div>
-            <div style={{ color: '#818cf8' }}>{svc.latency} · {svc.context}</div>
+            <div style={{ color: 'rgba(255,255,255,0.68)' }}>
+              <span style={{ color: 'rgba(255,255,255,0.4)' }}>Use case:</span> {service.use}
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.68)' }}>
+              <span style={{ color: 'rgba(255,255,255,0.4)' }}>Model:</span> {service.model}
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.68)' }}>
+              <span style={{ color: 'rgba(255,255,255,0.4)' }}>Context:</span> {service.context}
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.68)' }}>
+              <span style={{ color: 'rgba(255,255,255,0.4)' }}>Pricing:</span> {service.pricing}
+            </div>
           </div>
         </div>
       ))}
+
+      <div
+        style={{
+          borderRadius: 10,
+          padding: '10px 12px',
+          border: '1px solid rgba(129,140,248,0.25)',
+          background: 'rgba(129,140,248,0.1)',
+          color: 'rgba(255,255,255,0.74)',
+          fontSize: 11,
+          lineHeight: 1.5,
+        }}
+      >
+        Cloud complements local - use cloud for frontier capability, local for privacy + cost savings
+      </div>
     </div>
   );
 }

@@ -59,6 +59,7 @@ export interface AIModelResult {
   status: 'fast' | 'runs' | 'distributed' | 'tight' | 'no';
   notes: string;
   runMode: string;
+  runsOn: string;
   category: string;
   desc: string;
   costPerMTokenInput?: number;
@@ -71,9 +72,9 @@ export interface CloudService {
   name: string;
   tier: string;
   use: string;
-  latency: string;
   model: string;
   context: string;
+  pricing: string;
 }
 
 export type InfoTab = 'specs' | 'ai' | 'costs' | 'cloud';

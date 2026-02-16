@@ -10,231 +10,244 @@ interface CostsPanelProps {
 export default function CostsPanel({ machines, aiModels }: CostsPanelProps) {
   const [electricityRate, setElectricityRate] = useState(0.30);
   const [hoursPerDay, setHoursPerDay] = useState(12);
-  const activeMachines = machines.filter((m) => m.active);
+  const [showSettings, setShowSettings] = useState(false);
 
-  // Hardware cost
-  const hardwareCost = activeMachines.reduce((sum, m) => {
-    const range = CHIP_PRICE_RANGES[m.chip];
+  const activeMachines = machines.filter((machine) => machine.active);
+
+  const hardwareCost = activeMachines.reduce((sum, machine) => {
+    const range = CHIP_PRICE_RANGES[machine.chip];
     return sum + (range ? Math.round((range[0] + range[1]) / 2) : 0);
   }, 0);
 
-  // Monthly electricity estimate (kWh * rate)
   const avgPowerKwPerMachine = 0.09;
   const monthlyElectricity =
     activeMachines.length * avgPowerKwPerMachine * hoursPerDay * 30 * electricityRate;
 
-  // Cloud equivalent monthly cost (sum of all runnable models)
-  const runnableModels = aiModels.filter((m) => m.status !== 'no');
-  const cloudMonthlyCost = runnableModels.reduce((sum, m) => {
-    if (m.costPerMTokenInput && m.costPerMTokenOutput) {
-      return sum + (m.costPerMTokenInput + m.costPerMTokenOutput) * 50;
-    }
-    return sum;
+  const cloudMonthlyCost = aiModels.reduce((sum, model) => {
+    if (model.status === 'no') return sum;
+    if (model.costPerMTokenInput === undefined || model.costPerMTokenOutput === undefined) return sum;
+    return sum + (model.costPerMTokenInput + model.costPerMTokenOutput) * 50;
   }, 0);
 
   const localMonthlyCost = monthlyElectricity;
   const monthlySavings = cloudMonthlyCost - localMonthlyCost;
   const breakEvenMonths = monthlySavings > 0 ? Math.ceil(hardwareCost / monthlySavings) : Infinity;
 
-  const rowStyle: React.CSSProperties = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '8px 0',
-    borderBottom: '1px solid rgba(255,255,255,0.04)',
-  };
-
-  const labelSt: React.CSSProperties = {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.4)',
-  };
-
-  const valueSt: React.CSSProperties = {
-    fontSize: 12,
-    fontWeight: 700,
-    fontFamily: "'JetBrains Mono', monospace",
-    color: '#e2e8f0',
-  };
-
-  const sectionLabel: React.CSSProperties = {
-    fontSize: 10,
-    fontWeight: 700,
-    textTransform: 'uppercase',
-    letterSpacing: '0.1em',
-    color: 'rgba(255,255,255,0.2)',
-    marginBottom: 8,
-    marginTop: 16,
-  };
-
-  // ROI timeline
   const roiMonths = [3, 6, 12, 24, 36];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
-      <div style={sectionLabel}>Energy Inputs</div>
-      <div style={{
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.05)',
-        borderRadius: 8,
-        padding: '10px 12px',
-        marginBottom: 6,
-      }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-            <span style={labelSt}>Electricity rate (AUD/kWh)</span>
-            <input
-              type="number"
-              min={0}
-              step={0.01}
-              value={electricityRate}
-              onChange={(e) => setElectricityRate(Math.max(0, Number(e.target.value) || 0))}
-              style={{
-                width: 90,
-                borderRadius: 6,
-                border: '1px solid rgba(255,255,255,0.12)',
-                background: 'rgba(255,255,255,0.04)',
-                color: '#e2e8f0',
-                fontSize: 11,
-                fontFamily: "'JetBrains Mono', monospace",
-                padding: '5px 6px',
-                outline: 'none',
-              }}
-            />
-          </div>
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-              <span style={labelSt}>Hours per day</span>
-              <span style={{ ...valueSt, fontSize: 11, color: '#a5b4fc' }}>
-                {hoursPerDay}h/day
-              </span>
-            </div>
-            <input
-              type="range"
-              min={1}
-              max={24}
-              step={1}
-              value={hoursPerDay}
-              onChange={(e) => setHoursPerDay(Number(e.target.value))}
-              style={{ width: '100%' }}
-            />
-          </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div
+        style={{
+          background: 'rgba(34,197,94,0.1)',
+          border: '1px solid rgba(34,197,94,0.35)',
+          borderRadius: 14,
+          padding: '14px 16px',
+        }}
+      >
+        <div style={{ color: 'rgba(255,255,255,0.58)', fontSize: 11 }}>Monthly savings</div>
+        <div
+          style={{
+            marginTop: 4,
+            color: '#4ade80',
+            fontSize: 34,
+            lineHeight: 1,
+            fontWeight: 900,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontFamily: "'JetBrains Mono', monospace",
+          }}
+        >
+          <span>↗</span>
+          <span>${Math.max(0, Math.round(monthlySavings)).toLocaleString()}</span>
         </div>
       </div>
 
-      {/* Hardware Costs */}
-      <div style={sectionLabel}>Hardware Investment</div>
-      <div style={{
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.05)',
-        borderRadius: 8,
-        padding: '6px 12px',
-      }}>
-        {activeMachines.map((m) => {
-          const range = CHIP_PRICE_RANGES[m.chip];
-          return (
-            <div key={m.id} style={rowStyle}>
-              <span style={labelSt}>{m.name} ({m.chip})</span>
-              <span style={{ ...valueSt, fontSize: 11 }}>
-                {range ? `$${range[0].toLocaleString()} – $${range[1].toLocaleString()}` : '—'}
-              </span>
-            </div>
-          );
-        })}
-        <div style={{ ...rowStyle, borderBottom: 'none' }}>
-          <span style={{ ...labelSt, fontWeight: 700, color: '#818cf8' }}>Total Hardware</span>
-          <span style={{ ...valueSt, color: '#818cf8' }}>
+      <div
+        style={{
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 12,
+          padding: '10px 14px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+        }}
+      >
+        {[
+          { label: 'Running locally', value: `$${localMonthlyCost.toFixed(0)}/mo`, color: '#22c55e' },
+          { label: 'Cloud APIs', value: `$${cloudMonthlyCost.toFixed(0)}/mo`, color: '#ef4444' },
+          { label: 'You save', value: `$${Math.round(monthlySavings).toLocaleString()}/mo`, color: '#4ade80' },
+        ].map((row) => (
+          <div
+            key={row.label}
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '8px 0',
+              borderBottom: row.label === 'You save' ? 'none' : '1px solid rgba(255,255,255,0.05)',
+            }}
+          >
+            <span style={{ color: 'rgba(255,255,255,0.58)', fontSize: 12 }}>{row.label}</span>
+            <span
+              style={{
+                color: row.color,
+                fontSize: row.label === 'You save' ? 16 : 13,
+                fontWeight: 800,
+                fontFamily: "'JetBrains Mono', monospace",
+              }}
+            >
+              {row.value}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div
+        style={{
+          background: 'rgba(129,140,248,0.1)',
+          border: '1px solid rgba(129,140,248,0.3)',
+          borderRadius: 12,
+          padding: '12px 14px',
+        }}
+      >
+        <div style={{ color: 'rgba(255,255,255,0.66)', fontSize: 11, marginBottom: 8 }}>Hardware investment</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <span style={{ color: 'rgba(255,255,255,0.58)', fontSize: 12 }}>Total hardware</span>
+          <span style={{ color: '#e2e8f0', fontSize: 16, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace" }}>
             ~${hardwareCost.toLocaleString()}
           </span>
         </div>
-      </div>
-
-      {/* Monthly Running Costs */}
-      <div style={sectionLabel}>Monthly Costs</div>
-      <div style={{
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.05)',
-        borderRadius: 8,
-        padding: '6px 12px',
-      }}>
-        <div style={rowStyle}>
-          <span style={labelSt}>Electricity ({activeMachines.length} machines, {hoursPerDay}h/day)</span>
-          <span style={{ ...valueSt, color: '#22c55e' }}>${localMonthlyCost.toFixed(0)}/mo</span>
-        </div>
-        <div style={rowStyle}>
-          <span style={labelSt}>Cloud API equivalent</span>
-          <span style={{ ...valueSt, color: '#ef4444' }}>${cloudMonthlyCost.toFixed(0)}/mo</span>
-        </div>
-        <div style={{ ...rowStyle, borderBottom: 'none' }}>
-          <span style={{ ...labelSt, fontWeight: 700, color: '#22c55e' }}>Monthly Savings</span>
-          <span style={{ ...valueSt, color: '#22c55e' }}>
-            ${Math.round(monthlySavings).toLocaleString()}/mo
-          </span>
-        </div>
-      </div>
-
-      {/* Break-even */}
-      <div style={sectionLabel}>Break-even & ROI</div>
-      <div style={{
-        background: 'rgba(129,140,248,0.08)',
-        border: '1px solid rgba(129,140,248,0.15)',
-        borderRadius: 8,
-        padding: '10px 12px',
-        marginBottom: 8,
-      }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Break-even point</span>
-          <span style={{
-            fontSize: 14, fontWeight: 800, color: '#818cf8',
-            fontFamily: "'JetBrains Mono', monospace",
-          }}>
-            {breakEvenMonths === Infinity ? '∞' : `${breakEvenMonths} months`}
+          <span style={{ color: 'rgba(255,255,255,0.58)', fontSize: 12 }}>Break-even</span>
+          <span style={{ color: '#c7d2fe', fontSize: 13, fontWeight: 700 }}>
+            {breakEvenMonths === Infinity ? 'Not reached' : `${breakEvenMonths} months`}
           </span>
         </div>
       </div>
 
-      {/* ROI Table */}
-      <div style={{
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.05)',
-        borderRadius: 8,
-        padding: '6px 12px',
-      }}>
-        {roiMonths.map((months) => {
-          const totalSaved = monthlySavings * months;
-          const netRoi = totalSaved - hardwareCost;
-          const roiPct = hardwareCost > 0 ? Math.round((netRoi / hardwareCost) * 100) : 0;
-          return (
-            <div key={months} style={rowStyle}>
-              <span style={labelSt}>{months} months</span>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                <span style={{
-                  fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
-                  color: netRoi >= 0 ? '#22c55e' : '#ef4444',
-                }}>
-                  {netRoi >= 0 ? '+' : ''}${Math.round(netRoi).toLocaleString()}
-                </span>
-                <span style={{
-                  fontSize: 9, fontFamily: "'JetBrains Mono', monospace",
-                  color: netRoi >= 0 ? '#22c55e' : 'rgba(255,255,255,0.2)',
-                  fontWeight: 700, width: 48, textAlign: 'right',
-                }}>
-                  {roiPct}% ROI
+      <div
+        style={{
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 12,
+          padding: '12px 14px',
+        }}
+      >
+        <div style={{ color: '#f8fafc', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>ROI timeline</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {roiMonths.map((months) => {
+            const recovered = Math.max(0, monthlySavings * months);
+            const progress = hardwareCost > 0 ? Math.min(100, Math.round((recovered / hardwareCost) * 100)) : 0;
+            const net = recovered - hardwareCost;
+
+            return (
+              <div key={months}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ color: 'rgba(255,255,255,0.58)', fontSize: 11 }}>{months} months</span>
+                  <span
+                    style={{
+                      color: net >= 0 ? '#22c55e' : 'rgba(255,255,255,0.5)',
+                      fontSize: 11,
+                      fontFamily: "'JetBrains Mono', monospace",
+                    }}
+                  >
+                    {net >= 0 ? '+' : ''}${Math.round(net).toLocaleString()}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    height: 7,
+                    borderRadius: 999,
+                    background: 'rgba(255,255,255,0.08)',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${progress}%`,
+                      height: '100%',
+                      borderRadius: 999,
+                      background: progress >= 100 ? '#22c55e' : '#818cf8',
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div
+        style={{
+          background: 'rgba(255,255,255,0.015)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: 12,
+          padding: '10px 12px',
+        }}
+      >
+        <button
+          onClick={() => setShowSettings((prev) => !prev)}
+          style={{
+            width: '100%',
+            border: 'none',
+            background: 'transparent',
+            color: 'rgba(255,255,255,0.72)',
+            fontSize: 12,
+            fontWeight: 700,
+            textAlign: 'left',
+            cursor: 'pointer',
+            padding: 0,
+          }}
+        >
+          {showSettings ? 'Hide' : 'Show'} Settings
+        </button>
+
+        {showSettings && (
+          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+              <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>Electricity rate (AUD/kWh)</span>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                value={electricityRate}
+                onChange={(event) => setElectricityRate(Math.max(0, Number(event.target.value) || 0))}
+                style={{
+                  width: 90,
+                  borderRadius: 8,
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  background: 'rgba(255,255,255,0.04)',
+                  color: '#f8fafc',
+                  fontSize: 11,
+                  fontFamily: "'JetBrains Mono', monospace",
+                  padding: '6px 8px',
+                  outline: 'none',
+                }}
+              />
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>Hours per day</span>
+                <span style={{ color: '#c7d2fe', fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>
+                  {hoursPerDay}h/day
                 </span>
               </div>
+              <input
+                type="range"
+                min={1}
+                max={24}
+                step={1}
+                value={hoursPerDay}
+                onChange={(event) => setHoursPerDay(Number(event.target.value))}
+                style={{ width: '100%' }}
+              />
             </div>
-          );
-        })}
-      </div>
-
-      {/* Note */}
-      <div style={{
-        fontSize: 9, color: 'rgba(255,255,255,0.15)',
-        marginTop: 12, lineHeight: 1.5,
-        fontStyle: 'italic',
-      }}>
-        Estimates assume ~100M tokens/month usage across runnable models.
-        Electricity assumes ~90W average per active machine.
-        Cloud costs based on current API pricing per 1M tokens.
+          </div>
+        )}
       </div>
     </div>
   );
