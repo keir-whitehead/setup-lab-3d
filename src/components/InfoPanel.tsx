@@ -25,6 +25,13 @@ interface InfoPanelProps {
 }
 
 const MACHINE_OPTIONS: MachineTemplateKey[] = ['MacBook Air', 'MacBook Pro', 'Mac Mini', 'Mac Studio', 'Mac Pro'];
+const MACHINE_COLORS: Record<MachineTemplateKey, string> = {
+  'MacBook Air': '#10b981',
+  'MacBook Pro': '#3b82f6',
+  'Mac Mini': '#f59e0b',
+  'Mac Studio': '#8b5cf6',
+  'Mac Pro': '#f43f5e',
+};
 
 const parseBandwidth = (bandwidth: string): number => {
   const value = Number.parseInt(bandwidth, 10);
@@ -46,7 +53,6 @@ export default function InfoPanel({
   onRemoveMachine,
 }: InfoPanelProps) {
   const [tab, setTab] = useState<InfoTab>('specs');
-  const [showAddPicker, setShowAddPicker] = useState(false);
 
   const activeMachines = machines.filter((machine) => machine.active);
   const combinedBandwidth = activeMachines.reduce(
@@ -190,72 +196,59 @@ export default function InfoPanel({
                   />
                 ))}
 
-                <div
-                  style={{
-                    border: '1px dashed rgba(255,255,255,0.22)',
-                    borderRadius: 14,
-                    padding: 14,
-                    background: 'rgba(255,255,255,0.015)',
-                  }}
-                >
-                  {!showAddPicker && (
-                    <button
-                      onClick={() => setShowAddPicker(true)}
-                      style={{
-                        width: '100%',
-                        border: 'none',
-                        borderRadius: 8,
-                        background: 'transparent',
-                        color: 'rgba(255,255,255,0.78)',
-                        fontSize: 12,
-                        fontWeight: 700,
-                        padding: '6px 8px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      + Add Machine
-                    </button>
-                  )}
-
-                  {showAddPicker && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {MACHINE_OPTIONS.map((option) => (
-                        <button
-                          key={option}
-                          onClick={() => {
-                            onAddMachine?.(option);
-                            setShowAddPicker(false);
-                          }}
-                          style={{
-                            border: '1px solid rgba(255,255,255,0.1)',
-                            borderRadius: 8,
-                            background: 'rgba(255,255,255,0.03)',
-                            color: '#f8fafc',
-                            fontSize: 11,
-                            fontWeight: 600,
-                            textAlign: 'left',
-                            padding: '8px 10px',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {option}
-                        </button>
-                      ))}
+                <div style={{ paddingTop: 2 }}>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                      color: 'rgba(255,255,255,0.34)',
+                      marginBottom: 8,
+                      fontWeight: 700,
+                    }}
+                  >
+                    Add Machine
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {MACHINE_OPTIONS.map((option) => (
                       <button
-                        onClick={() => setShowAddPicker(false)}
+                        key={option}
+                        onClick={() => onAddMachine?.(option)}
                         style={{
-                          border: 'none',
-                          background: 'transparent',
-                          color: 'rgba(255,255,255,0.4)',
-                          fontSize: 10,
-                          padding: 4,
+                          border: '1px solid rgba(255,255,255,0.14)',
+                          borderRadius: 999,
+                          background: 'rgba(255,255,255,0.04)',
+                          color: '#f8fafc',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: '7px 10px',
                           cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
                         }}
                       >
-                        Cancel
+                        <span
+                          style={{
+                            width: 14,
+                            height: 14,
+                            borderRadius: 999,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: `${MACHINE_COLORS[option]}2a`,
+                            color: MACHINE_COLORS[option],
+                            fontSize: 11,
+                            lineHeight: 1,
+                            fontWeight: 800,
+                          }}
+                        >
+                          +
+                        </span>
+                        {option}
                       </button>
-                    </div>
-                  )}
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

@@ -1,6 +1,6 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import { Canvas, ThreeEvent, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, useGLTF, ContactShadows, Html } from '@react-three/drei';
+import { OrbitControls, useGLTF, ContactShadows, Html, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import type { Machine, Monitor } from '../types';
 
@@ -48,8 +48,21 @@ function DeskModel({ machines, monitors, onSelectMachine, onSelectMonitor, selec
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const { gl } = useThree();
 
-  const machineEntries = machines.map((machine) => [machine.meshName.toLowerCase(), machine] as const);
-  const monitorEntries = monitors.map((monitor) => [monitor.meshName.toLowerCase(), monitor] as const);
+  const machineEntries = useMemo(
+    () => machines.map((machine) => [machine.meshName.toLowerCase(), machine] as const),
+    [machines]
+  );
+  const monitorEntries = useMemo(
+    () => monitors.map((monitor) => [monitor.meshName.toLowerCase(), monitor] as const),
+    [monitors]
+  );
+  const machineVisibilityByMesh = useMemo(() => {
+    const visibility = new Map<string, boolean>();
+    for (const [meshName, machine] of machineEntries) {
+      visibility.set(meshName, (visibility.get(meshName) ?? false) || machine.active);
+    }
+    return visibility;
+  }, [machineEntries]);
 
   useEffect(() => {
     if (!modelRef.current) return;
@@ -59,17 +72,24 @@ function DeskModel({ machines, monitors, onSelectMachine, onSelectMonitor, selec
 
       const name = child.name.toLowerCase();
 
-      if (name.includes('wall') || name.includes('room')) {
+      if (name.includes('backwall') || name === 'floor' || name.startsWith('floor_')) {
         child.visible = false;
         return;
       }
 
       const machineEntry = machineEntries.find(([key]) => name.includes(key));
       if (machineEntry) {
-        child.visible = machineEntry[1].active;
+        child.visible = machineVisibilityByMesh.get(machineEntry[0]) ?? false;
+      }
+
+      const materials = Array.isArray(child.material) ? child.material : [child.material];
+      for (const material of materials) {
+        if (material instanceof THREE.MeshStandardMaterial) {
+          material.envMapIntensity = 0.15;
+        }
       }
     });
-  }, [machineEntries]);
+  }, [machineEntries, machineVisibilityByMesh]);
 
   useEffect(() => {
     gl.domElement.style.cursor = hoveredId ? 'pointer' : 'auto';
@@ -120,7 +140,7 @@ function DeskModel({ machines, monitors, onSelectMachine, onSelectMonitor, selec
     if (!selectedId || !modelRef.current) return null;
 
     const selectedMachine = machines.find((machine) => machine.id === selectedId);
-    if (!selectedMachine) return null;
+    if (!selectedMachine || !selectedMachine.active) return null;
 
     const meshKey = selectedMachine.meshName.toLowerCase();
     let target: THREE.Object3D | null = null;
@@ -246,22 +266,21 @@ export default function Scene({ machines, monitors, onSelectMachine, onSelectMon
       shadows
       gl={{ toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1 }}
     >
-      <ambientLight intensity={0.08} />
+      <Environment preset="night" />
       <directionalLight
-        position={[3, 6, 2]}
-        intensity={1.2}
-        color="#fff8f0"
+        position={[3, 5, 2]}
+        intensity={1}
+        color="#fff4e8"
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
       />
-      <directionalLight position={[-4, 4, -3]} intensity={0.3} color="#8090ff" />
-      <pointLight position={[-1, 3, -4]} intensity={0.4} color="#c0a0ff" />
-      <pointLight position={[0, 0.05, 0]} intensity={0.15} color="#818cf8" distance={3} />
+      <directionalLight position={[-3, 3, -1]} intensity={0.25} color="#c0d0ff" />
+      <ambientLight intensity={0.12} />
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <circleGeometry args={[10, 96]} />
-        <meshStandardMaterial color="#0a0a18" roughness={1} metalness={0} />
+        <circleGeometry args={[14, 96]} />
+        <meshStandardMaterial color="#05050d" roughness={1} metalness={0} />
       </mesh>
 
       <DeskModel
@@ -272,7 +291,7 @@ export default function Scene({ machines, monitors, onSelectMachine, onSelectMon
         selectedId={selectedId}
       />
 
-      <ContactShadows position={[0, -0.01, 0]} opacity={0.6} scale={10} blur={2.5} far={5} resolution={512} />
+      <ContactShadows position={[0, -0.01, 0]} opacity={0.6} scale={12} blur={2.5} far={5} resolution={512} />
 
       <OrbitControls
         makeDefault

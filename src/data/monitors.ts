@@ -10,7 +10,7 @@ export const INITIAL_MONITORS: Monitor[] = [
     size: '34"',
     colorGamut: 'sRGB',
     connection: 'USB-C to DisplayPort cable',
-    meshName: 'Monitor_Curved',
+    meshName: 'Monitor34',
   },
   {
     id: 'vp2756-2k',
@@ -22,7 +22,7 @@ export const INITIAL_MONITORS: Monitor[] = [
     colorGamut: '100% sRGB, Pantone Validated',
     connection: 'USB-C (60W PD), HDMI 1.4, DP 1.2a',
     features: 'Auto Pivot, Ergonomic Stand, Factory Calibrated',
-    meshName: 'Monitor_Flat',
+    meshName: 'Monitor27',
   },
   {
     id: 'espresso-15',
@@ -34,6 +34,6 @@ export const INITIAL_MONITORS: Monitor[] = [
     colorGamut: 'sRGB',
     connection: 'USB-C (touch, power, video)',
     features: 'Touchscreen, Portable, Magnetic Stand',
-    meshName: 'Monitor_Portable',
+    meshName: 'Espresso',
   },
 ];

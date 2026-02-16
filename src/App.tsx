@@ -24,7 +24,7 @@ const MACHINE_TEMPLATES: Record<MachineTemplateKey, Omit<Machine, 'id'>> = {
     bandwidth: '120 GB/s',
     role: 'Portable note-taking + local coding node',
     active: true,
-    meshName: 'MacBook_Air',
+    meshName: 'MacBookAir',
   },
   'MacBook Pro': {
     name: 'MacBook Pro',
@@ -41,7 +41,7 @@ const MACHINE_TEMPLATES: Record<MachineTemplateKey, Omit<Machine, 'id'>> = {
     bandwidth: '546 GB/s',
     role: 'Mobile workstation for model tuning and dev',
     active: true,
-    meshName: 'MacBook_Pro',
+    meshName: 'MacBookPro',
   },
   'Mac Mini': {
     name: 'Mac Mini',
@@ -58,7 +58,7 @@ const MACHINE_TEMPLATES: Record<MachineTemplateKey, Omit<Machine, 'id'>> = {
     bandwidth: '273 GB/s',
     role: 'Compact desktop / elastic worker node',
     active: true,
-    meshName: 'Mac_Mini',
+    meshName: 'MacMini',
   },
   'Mac Studio': {
     name: 'Mac Studio',
@@ -75,7 +75,7 @@ const MACHINE_TEMPLATES: Record<MachineTemplateKey, Omit<Machine, 'id'>> = {
     bandwidth: '819 GB/s',
     role: 'Primary inference and orchestration node',
     active: true,
-    meshName: 'Mac_Studio',
+    meshName: 'MacStudio',
   },
   'Mac Pro': {
     name: 'Mac Pro',
@@ -92,7 +92,7 @@ const MACHINE_TEMPLATES: Record<MachineTemplateKey, Omit<Machine, 'id'>> = {
     bandwidth: '819 GB/s',
     role: 'Heavy frontier model host and cluster anchor',
     active: true,
-    meshName: 'Mac_Studio',
+    meshName: 'MacPro',
   },
 };
 
@@ -103,7 +103,7 @@ const parseBandwidth = (bandwidth: string): number => {
 
 export default function App() {
   const [machines, setMachines] = useState<Machine[]>(INITIAL_MACHINES);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(INITIAL_MACHINES[0]?.id ?? null);
   const monitors = INITIAL_MONITORS;
 
   const activeMachines = useMemo(() => machines.filter((machine) => machine.active), [machines]);
@@ -154,12 +154,16 @@ export default function App() {
   }, []);
 
   const handleRemoveMachine = useCallback((id: string) => {
+    let nextSelectedId: string | null = null;
+    let removed = false;
     setMachines((prev) => {
       if (prev.length <= 1) return prev;
       const filtered = prev.filter((machine) => machine.id !== id);
+      removed = filtered.length !== prev.length;
+      nextSelectedId = filtered[0]?.id ?? null;
       return filtered.length === 0 ? prev : filtered;
     });
-    setSelectedId((prev) => (prev === id ? null : prev));
+    setSelectedId((prev) => (removed && prev === id ? nextSelectedId : prev));
   }, []);
 
   return (

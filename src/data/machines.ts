@@ -17,7 +17,7 @@ export const INITIAL_MACHINES: Machine[] = [
     bandwidth: '546 GB/s',
     role: 'Mobile workstation / remote work',
     active: true,
-    meshName: 'MacBook_Pro',
+    meshName: 'MacBookPro',
   },
   {
     id: 'mac-studio-m4-max',
@@ -35,7 +35,7 @@ export const INITIAL_MACHINES: Machine[] = [
     bandwidth: '546 GB/s',
     role: 'Primary desktop / always-on inference server',
     active: true,
-    meshName: 'Mac_Studio',
+    meshName: 'MacStudio',
   },
   {
     id: 'mba-m2',
@@ -53,7 +53,7 @@ export const INITIAL_MACHINES: Machine[] = [
     bandwidth: '100 GB/s',
     role: 'Light work / travel companion',
     active: true,
-    meshName: 'MacBook_Air',
+    meshName: 'MacBookAir',
   },
   {
     id: 'mac-mini-m4-pro',
@@ -71,6 +71,6 @@ export const INITIAL_MACHINES: Machine[] = [
     bandwidth: '273 GB/s',
     role: 'Compact desktop / dev server',
     active: true,
-    meshName: 'Mac_Mini',
+    meshName: 'MacMini',
   },
 ];

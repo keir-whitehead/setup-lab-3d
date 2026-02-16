@@ -1,5 +1,6 @@
 import type { Machine } from '../types';
 import { CHIP_CONFIGS, STORAGE_OPTIONS, CHIP_PRICE_RANGES, CHIP_CPU_MAP } from '../types';
+import { AI_MODEL_DEFS } from '../data/aiModels';
 
 interface MachineCardProps {
   machine: Machine;
@@ -126,7 +127,10 @@ export default function MachineCard({
   const priceRange = CHIP_PRICE_RANGES[machine.chip];
   const chipTier = getChipTier(machine.chip);
   const neuralCores = parseCoreCount(machine.neural);
-  const runBadge = parseRam(machine.ram) >= 96 ? 'Up to 70B models' : 'Up to 32B models';
+  const runnableModels = AI_MODEL_DEFS
+    .filter((model) => model.type === 'llm' && model.vramGB <= parseRam(machine.ram))
+    .sort((a, b) => b.vramGB - a.vramGB);
+  const featuredModels = runnableModels.slice(0, 6);
 
   const handleChipChange = (newChip: string) => {
     if (!onUpdate) return;
@@ -195,7 +199,34 @@ export default function MachineCard({
         <span style={{ color: 'rgba(255,255,255,0.56)', fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>
           {machine.ram}
         </span>
+        <span style={{ color: 'rgba(255,255,255,0.56)', fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>
+          {machine.gpu}
+        </span>
         <span style={{ color: 'rgba(255,255,255,0.42)', fontSize: 10, marginLeft: 'auto' }}>{machine.bandwidth}</span>
+        {onRemove && canRemove && (
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              onRemove(machine.id);
+            }}
+            style={{
+              width: 20,
+              height: 20,
+              borderRadius: 999,
+              border: '1px solid rgba(244,63,94,0.45)',
+              background: 'rgba(244,63,94,0.18)',
+              color: '#fda4af',
+              fontSize: 13,
+              lineHeight: '18px',
+              cursor: 'pointer',
+              padding: 0,
+              flexShrink: 0,
+            }}
+            aria-label={`Remove ${machine.name}`}
+          >
+            ×
+          </button>
+        )}
         <ToggleSwitch active={machine.active} onClick={() => onToggle(machine.id)} color={machine.color} />
       </div>
     );
@@ -341,6 +372,34 @@ export default function MachineCard({
           ))}
         </div>
 
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.42)', marginBottom: 6 }}>
+            Can run
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {featuredModels.length > 0 ? (
+              featuredModels.map((model) => (
+                <span
+                  key={model.name}
+                  style={{
+                    borderRadius: 999,
+                    border: '1px solid rgba(129,140,248,0.42)',
+                    color: '#c7d2fe',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    background: 'rgba(129,140,248,0.16)',
+                  }}
+                >
+                  {model.name}
+                </span>
+              ))
+            ) : (
+              <span style={{ color: 'rgba(255,255,255,0.56)', fontSize: 11 }}>No LLM profiles fit this RAM.</span>
+            )}
+          </div>
+        </div>
+
         <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
           <div style={{ color: 'rgba(255,255,255,0.58)', fontSize: 11 }}>
             Price range:{' '}
@@ -348,45 +407,9 @@ export default function MachineCard({
               {priceRange ? `$${priceRange[0].toLocaleString()} - $${priceRange[1].toLocaleString()}` : 'TBD'}
             </span>
           </div>
-          <span
-            style={{
-              borderRadius: 999,
-              border: '1px solid rgba(129,140,248,0.45)',
-              color: '#c7d2fe',
-              fontSize: 10,
-              fontWeight: 700,
-              padding: '4px 8px',
-              background: 'rgba(129,140,248,0.18)',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {runBadge}
-          </span>
+          <span style={{ color: 'rgba(255,255,255,0.56)', fontSize: 10 }}>{featuredModels.length} model fits</span>
         </div>
       </div>
-
-      {onRemove && (
-        <button
-          onClick={(event) => {
-            event.stopPropagation();
-            if (canRemove) onRemove(machine.id);
-          }}
-          disabled={!canRemove}
-          style={{
-            marginTop: 10,
-            border: 'none',
-            background: 'transparent',
-            color: canRemove ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.24)',
-            fontSize: 11,
-            textDecoration: 'underline',
-            textUnderlineOffset: 3,
-            cursor: canRemove ? 'pointer' : 'not-allowed',
-            padding: 0,
-          }}
-        >
-          Remove machine
-        </button>
-      )}
     </div>
   );
 }
